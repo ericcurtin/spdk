@@ -77,6 +77,8 @@ struct spdk_posix_sock {
 
 	int			placement_id;
 
+        SSL_CTX *ctx;
+
 	TAILQ_ENTRY(spdk_posix_sock)	link;
 };
 
@@ -439,12 +441,12 @@ end:
   "nqn.2014-08.org.nvmexpress:uuid:36ebf5a9-1df9-47b3-a6d0-e9"
 #define PSK_KEY "1234567890ABCDEF"
 
-static SSL_CTX *create_context(void)
+static SSL_CTX *create_context(const SSL_METHOD *method)
 {
 //#ifdef CLIENT
 //  ctx = SSL_CTX_new(TLS_client_method());
 //#else
-	SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
+	SSL_CTX *ctx = SSL_CTX_new(method);
 //#endif
 
 	if (!ctx) {
@@ -480,7 +482,7 @@ err:
 	return 0;
 }
 
-static SSL *create_tls_object_server(SSL_CTX *ctx, int lfd)
+static SSL *create_ssl_object_server(SSL_CTX *ctx, int fd)
 {
 	SSL *ssl = SSL_new(ctx);
 	if (!ssl) {
@@ -488,11 +490,46 @@ static SSL *create_tls_object_server(SSL_CTX *ctx, int lfd)
 		return NULL;
 	}
 
-	int fd;
 	SSL_set_fd(ssl, fd);
 	SSL_set_psk_server_callback(ssl, tls_psk_out_of_bound_serv_cb);
 	SPDK_ERRLOG("SSL object creation finished\n");
+
 	return ssl;
+}
+
+static SSL *create_ssl_object_client(SSL_CTX *ctx, int fd) {
+        SSL *ssl = SSL_new(ctx);
+        if (!ssl) {
+                SPDK_ERRLOG("SSL object creation failed\n");
+                return NULL;
+        }
+
+        SSL_set_fd(ssl, fd);
+        SSL_set_psk_server_callback(ssl, tls_psk_out_of_bound_serv_cb); 
+        SPDK_ERRLOG("SSL object creation finished\n");
+
+        return ssl;
+}
+
+static void get_error(void) {
+  unsigned long error;
+  const char* file = NULL;
+  int line = 0;
+  error = ERR_get_error_line(&file, &line);
+  SPDK_ERRLOG("Error reason=%d on [%s:%d]\n", ERR_GET_REASON(error), file, line);
+}
+
+static void do_cleanup(SSL_CTX* ctx, SSL* ssl) {
+  int fd;
+  if (ssl) {
+    fd = SSL_get_fd(ssl);
+    SSL_free(ssl);
+    close(fd);
+  }
+
+  if (ctx) {
+    SSL_CTX_free(ctx);
+  }
 }
 
 static struct spdk_sock *
@@ -540,6 +577,7 @@ posix_sock_create(const char *ip, int port,
 
 	/* try listen */
 	fd = -1;
+        SSL_CTX* ctx;
 	for (res = res0; res != NULL; res = res->ai_next) {
 retry:
 		fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -594,6 +632,12 @@ retry:
 		}
 
 		if (type == SPDK_SOCK_CREATE_LISTEN) {
+                        ctx = create_context(TLS_server_method());
+                        if (!ctx) { 
+                                SPDK_ERRLOG("create_context() failed\n"); 
+                                return NULL;
+                        }
+
 			rc = bind(fd, res->ai_addr, res->ai_addrlen);
 			if (rc != 0) {
 				SPDK_ERRLOG("bind() failed at port %d, errno = %d\n", port, errno);
@@ -615,8 +659,9 @@ retry:
 					continue;
 				}
 			}
+
 			/* bind OK */
-			printf("%s:%s:%d listen\n", __func__, __FILE__, __LINE__);
+			SPDK_ERRLOG("%s:%s:%d listen\n", __func__, __FILE__, __LINE__);
 			rc = listen(fd, 512);
 			if (rc != 0) {
 				SPDK_ERRLOG("listen() failed, errno = %d\n", errno);
@@ -627,7 +672,13 @@ retry:
 			enable_zcopy_impl_opts = g_spdk_posix_sock_impl_opts.enable_zerocopy_send_server &&
 						 g_spdk_posix_sock_impl_opts.enable_zerocopy_send;
 		} else if (type == SPDK_SOCK_CREATE_CONNECT) {
-			printf("%s:%s:%d connect\n", __func__, __FILE__, __LINE__);
+                        ctx = create_context(TLS_client_method());
+                        if (!ctx) {
+                                SPDK_ERRLOG("create_context() failed\n");
+                                return NULL;
+                        }
+
+			SPDK_ERRLOG("%s:%s:%d connect\n", __func__, __FILE__, __LINE__);
 			rc = connect(fd, res->ai_addr, res->ai_addrlen);
 			if (rc != 0) {
 				SPDK_ERRLOG("connect() failed, errno = %d\n", errno);
@@ -636,6 +687,18 @@ retry:
 				fd = -1;
 				continue;
 			}
+
+                        create_ssl_object_client(ctx, fd);
+                        if (!ctx) {
+                                SPDK_ERRLOG("create_context() failed\n");
+                                goto err_handler;
+                        }
+
+                        rc = SSL_connect(ssl);
+                        if (ret != 1) {
+				SPDK_ERRLOG("SSL connect failed%d\n", ret);
+if (SSL_get_error(ssl, ret) == SSL_ERROR_SSL) (
+
 			enable_zcopy_impl_opts = g_spdk_posix_sock_impl_opts.enable_zerocopy_send_client &&
 						 g_spdk_posix_sock_impl_opts.enable_zerocopy_send;
 		}
@@ -665,7 +728,14 @@ retry:
 		return NULL;
 	}
 
+        sock->ctx = ctx;
+
 	return &sock->base;
+
+err_handler:
+        do_cleanup(ctx, ssl);
+
+        return NULL;
 }
 
 static struct spdk_sock *
@@ -701,12 +771,25 @@ posix_sock_accept(struct spdk_sock *_sock)
 		return NULL;
 	}
 
-// start tls server here
-	SSL_CTX *ctx = create_context();
-	SSL *ssl = create_tls_object_server(ctx, sock->fd);
-
 	fd = rc;
 
+        SSL *ssl = create_ssl_object_server(sock->ctx, fd);
+        if (!ssl) {
+                goto err_handler;
+        }
+
+        rc = SSL_accept(ssl);
+        if (rc != 1) {
+                SPDK_ERRLOG("SSL accept failed%d\n", rc);
+                if (SSL_get_error(ssl, rc) == SSL_ERROR_SSL) {
+                        get_error();
+                }
+
+                goto err_handler;
+        }
+
+        SPDK_ERRLOG("SSL accept succeeded\n");
+        SPDK_ERRLOG("Negotiated Cipher suite:%s\n", SSL_CIPHER_get_name(SSL_get_current_cipher(ssl)));
 	flag = fcntl(fd, F_GETFL);
 	if ((!(flag & O_NONBLOCK)) && (fcntl(fd, F_SETFL, flag | O_NONBLOCK) < 0)) {
 		SPDK_ERRLOG("fcntl can't set nonblocking mode for socket, fd: %d (%d)\n", fd, errno);
@@ -733,6 +816,11 @@ posix_sock_accept(struct spdk_sock *_sock)
 	}
 
 	return &new_sock->base;
+
+err_handler:
+        do_cleanup(sock->ctx, ssl);
+
+        return NULL;
 }
 
 static int

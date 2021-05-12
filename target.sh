@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-trap 'ec=$?; if [ $ec -ne 0 ]; then echo "exit $? due to '\$previous_command'"; fi' EXIT
+trap 'ec=$?; if [ $ec -ne 0 ]; then echo "exit $? due to '\$previous_command'"; fi; sudo pkill -f nvmf_tgt' SIGINT SIGTERM EXIT
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 
 sudo pkill -f nvmf_tgt
