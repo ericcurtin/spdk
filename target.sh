@@ -7,6 +7,7 @@ trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 sudo pkill -f nvmf_tgt
 
 if ! [ -e "lib/nvme/nvme.o" ]; then
+  export CFLAGS="-ggdb -O0"
   git submodule update --init
   ./configure
   make -j$(getconf _NPROCESSORS_ONLN)

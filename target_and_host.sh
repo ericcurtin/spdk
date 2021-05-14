@@ -10,7 +10,7 @@ while ! pgrep -f nvmf_tgt > /dev/null 2>&1; do
   sleep 1
 done
 
-sleep 1
+sleep 2
 
 ./host.sh
 

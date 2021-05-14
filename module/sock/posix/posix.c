@@ -52,9 +52,13 @@
 #include "spdk/util.h"
 #include "spdk_internal/sock.h"
 
+#define TLS
+
+#ifdef TLS
 #include "openssl/crypto.h"
 #include "openssl/err.h"
 #include "openssl/ssl.h"
+#endif
 
 #define MAX_TMPBUF 1024
 #define PORTNUMLEN 32
@@ -62,6 +66,8 @@
 #if defined(SO_ZEROCOPY) && defined(MSG_ZEROCOPY)
 #define SPDK_ZEROCOPY
 #endif
+
+#define ericf(x, ...) printf("%s:%s:%d" x, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
 struct spdk_posix_sock {
 	struct spdk_sock	base;
@@ -77,7 +83,10 @@ struct spdk_posix_sock {
 
 	int			placement_id;
 
+#ifdef TLS
         SSL_CTX *ctx;
+        SSL *ssl;
+#endif
 
 	TAILQ_ENTRY(spdk_posix_sock)	link;
 };
@@ -436,6 +445,7 @@ end:
 	return is_loopback;
 }
 
+#ifdef TLS
 #define PSK_ID                                                            \
   "nqn.2014-08.org.nvmexpress:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6 " \
   "nqn.2014-08.org.nvmexpress:uuid:36ebf5a9-1df9-47b3-a6d0-e9"
@@ -476,10 +486,32 @@ static unsigned int tls_psk_out_of_bound_serv_cb(SSL *ssl,
 	}
 
 	memcpy(psk, PSK_KEY, strlen(PSK_KEY));
+
 	return strlen(PSK_KEY);
 
 err:
 	return 0;
+}
+
+static unsigned int tls_psk_out_of_bound_client_cb(SSL *ssl, const char *hint,
+                                       char *identity,
+                                       unsigned int max_identity_len,
+                                       unsigned char *psk,
+                                       unsigned int max_psk_len)
+{
+    if ((strlen(PSK_ID) + 1 > max_identity_len)
+            || (strlen(PSK_KEY) > max_psk_len)) {
+        printf("PSK ID or Key buffer is not sufficient\n");
+        goto err;
+    }
+    strcpy(identity, PSK_ID);
+    memcpy(psk, PSK_KEY, strlen(PSK_KEY));
+    printf("Provided Out of bound PSK for TLS1.3 client\n");
+
+    return strlen(PSK_KEY);
+
+err:
+    return 0;
 }
 
 static SSL *create_ssl_object_server(SSL_CTX *ctx, int fd)
@@ -505,7 +537,7 @@ static SSL *create_ssl_object_client(SSL_CTX *ctx, int fd) {
         }
 
         SSL_set_fd(ssl, fd);
-        SSL_set_psk_server_callback(ssl, tls_psk_out_of_bound_serv_cb); 
+        SSL_set_psk_client_callback(ssl, tls_psk_out_of_bound_client_cb); 
         SPDK_ERRLOG("SSL object creation finished\n");
 
         return ssl;
@@ -531,6 +563,7 @@ static void do_cleanup(SSL_CTX* ctx, SSL* ssl) {
     SSL_CTX_free(ctx);
   }
 }
+#endif
 
 static struct spdk_sock *
 posix_sock_create(const char *ip, int port,
@@ -577,7 +610,11 @@ posix_sock_create(const char *ip, int port,
 
 	/* try listen */
 	fd = -1;
-        SSL_CTX* ctx;
+
+#ifdef TLS
+        SSL_CTX* ctx = 0;
+        SSL* ssl = 0;
+#endif
 	for (res = res0; res != NULL; res = res->ai_next) {
 retry:
 		fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -632,11 +669,14 @@ retry:
 		}
 
 		if (type == SPDK_SOCK_CREATE_LISTEN) {
+#ifdef TLS
                         ctx = create_context(TLS_server_method());
+                        ericf("reate_context(TLS_server_method())\n");
                         if (!ctx) { 
                                 SPDK_ERRLOG("create_context() failed\n"); 
                                 return NULL;
                         }
+#endif
 
 			rc = bind(fd, res->ai_addr, res->ai_addrlen);
 			if (rc != 0) {
@@ -672,11 +712,13 @@ retry:
 			enable_zcopy_impl_opts = g_spdk_posix_sock_impl_opts.enable_zerocopy_send_server &&
 						 g_spdk_posix_sock_impl_opts.enable_zerocopy_send;
 		} else if (type == SPDK_SOCK_CREATE_CONNECT) {
+#ifdef TLS
                         ctx = create_context(TLS_client_method());
                         if (!ctx) {
                                 SPDK_ERRLOG("create_context() failed\n");
                                 return NULL;
                         }
+#endif
 
 			SPDK_ERRLOG("%s:%s:%d connect\n", __func__, __FILE__, __LINE__);
 			rc = connect(fd, res->ai_addr, res->ai_addrlen);
@@ -688,16 +730,23 @@ retry:
 				continue;
 			}
 
-                        create_ssl_object_client(ctx, fd);
+#ifdef TLS
+                        ssl = create_ssl_object_client(ctx, fd);
                         if (!ctx) {
                                 SPDK_ERRLOG("create_context() failed\n");
                                 goto err_handler;
                         }
 
                         rc = SSL_connect(ssl);
-                        if (ret != 1) {
-				SPDK_ERRLOG("SSL connect failed%d\n", ret);
-if (SSL_get_error(ssl, ret) == SSL_ERROR_SSL) (
+                        if (rc != 1) {
+				SPDK_ERRLOG("SSL_connect failed%d\n", rc);
+                                if (SSL_get_error(ssl, rc) == SSL_ERROR_SSL) {
+                                        get_error();
+                                }
+
+                                goto err_handler;
+                        }
+#endif
 
 			enable_zcopy_impl_opts = g_spdk_posix_sock_impl_opts.enable_zerocopy_send_client &&
 						 g_spdk_posix_sock_impl_opts.enable_zerocopy_send;
@@ -728,14 +777,24 @@ if (SSL_get_error(ssl, ret) == SSL_ERROR_SSL) (
 		return NULL;
 	}
 
-        sock->ctx = ctx;
+#ifdef TLS
+        if (ctx) {
+                sock->ctx = ctx;
+        }
+
+        if (ssl) {
+                sock->ssl = ssl;
+        }
+#endif
 
 	return &sock->base;
 
+#ifdef TLS
 err_handler:
         do_cleanup(ctx, ssl);
 
         return NULL;
+#endif
 }
 
 static struct spdk_sock *
@@ -773,6 +832,7 @@ posix_sock_accept(struct spdk_sock *_sock)
 
 	fd = rc;
 
+#ifdef TLS
         SSL *ssl = create_ssl_object_server(sock->ctx, fd);
         if (!ssl) {
                 goto err_handler;
@@ -780,7 +840,7 @@ posix_sock_accept(struct spdk_sock *_sock)
 
         rc = SSL_accept(ssl);
         if (rc != 1) {
-                SPDK_ERRLOG("SSL accept failed%d\n", rc);
+                SPDK_ERRLOG("SSL_accept failed%d\n", rc);
                 if (SSL_get_error(ssl, rc) == SSL_ERROR_SSL) {
                         get_error();
                 }
@@ -788,8 +848,9 @@ posix_sock_accept(struct spdk_sock *_sock)
                 goto err_handler;
         }
 
-        SPDK_ERRLOG("SSL accept succeeded\n");
+        SPDK_ERRLOG("SSL_accept succeeded\n");
         SPDK_ERRLOG("Negotiated Cipher suite:%s\n", SSL_CIPHER_get_name(SSL_get_current_cipher(ssl)));
+#endif
 	flag = fcntl(fd, F_GETFL);
 	if ((!(flag & O_NONBLOCK)) && (fcntl(fd, F_SETFL, flag | O_NONBLOCK) < 0)) {
 		SPDK_ERRLOG("fcntl can't set nonblocking mode for socket, fd: %d (%d)\n", fd, errno);
@@ -817,10 +878,12 @@ posix_sock_accept(struct spdk_sock *_sock)
 
 	return &new_sock->base;
 
+#ifdef TLS
 err_handler:
         do_cleanup(sock->ctx, ssl);
 
         return NULL;
+#endif
 }
 
 static int
@@ -1075,6 +1138,27 @@ posix_sock_recv_from_pipe(struct spdk_posix_sock *sock, struct iovec *diov, int 
 	return bytes;
 }
 
+#ifdef TLS
+static int
+SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
+{
+    int i;
+    int n;
+    int rc = 0;
+
+    for (i = 0; i < iovcnt; i++) {
+        if ((n = SSL_read(ssl, iov[i].iov_base, iov[i].iov_len)) <= 0) {
+            rc = n;
+            break;
+        }
+
+        rc += n;
+   }
+
+   return rc;
+}
+#endif
+
 static inline ssize_t
 posix_sock_read(struct spdk_posix_sock *sock)
 {
@@ -1085,7 +1169,11 @@ posix_sock_read(struct spdk_posix_sock *sock)
 	bytes = spdk_pipe_writer_get_buffer(sock->recv_pipe, sock->recv_buf_sz, iov);
 
 	if (bytes > 0) {
+#ifdef TLS
+                bytes = SSL_readv(sock->ssl, iov, 2);
+#else
 		bytes = readv(sock->fd, iov, 2);
+#endif
 		if (bytes > 0) {
 			spdk_pipe_writer_advance(sock->recv_pipe, bytes);
 
@@ -1162,9 +1250,31 @@ posix_sock_recv(struct spdk_sock *sock, void *buf, size_t len)
 	return posix_sock_readv(sock, iov, 1);
 }
 
+#ifdef TLS
+static int
+SSL_writev(SSL *ssl, const struct iovec *iov, int iovcnt)
+{
+    int i;
+    int n;
+    int rc = 0;
+
+    for (i = 0; i < iovcnt; i++) {
+        if ((n = SSL_write(ssl, iov[i].iov_base, iov[i].iov_len)) == -1) {
+            rc = -1;
+            break;
+        }
+
+        rc += n;
+    }
+
+    return rc;
+}
+#endif
+
 static ssize_t
 posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 {
+        ericf("\n");
 	struct spdk_posix_sock *sock = __posix_sock(_sock);
 	int rc;
 
@@ -1181,12 +1291,17 @@ posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 		return -1;
 	}
 
+#ifdef TLS
+        return SSL_writev(sock->ssl, iov, iovcnt);
+#else
 	return writev(sock->fd, iov, iovcnt);
+#endif
 }
 
 static void
 posix_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 {
+        ericf("\n");
 	int rc;
 
 	spdk_sock_request_queue(sock, req);
