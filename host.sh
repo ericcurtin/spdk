@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-trap 'ec=$?; if [ $ec -ne 0 ]; then echo "exit $? due to '\$previous_command'"; fi' EXIT
+trap 'ec=$?; if [ $ec -ne 0 ]; then echo "exit $ec due to '\$previous_command'"; fi' EXIT
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 
 sudo scripts/rpc.py nvmf_create_transport -t TCP

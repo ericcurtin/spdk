@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-trap 'ec=$?; if [ $ec -ne 0 ]; then echo "exit $? due to '\$previous_command'"; fi; sudo pkill -f nvmf_tgt' SIGINT SIGTERM EXIT
+trap 'ec=$?; if [ $ec -ne 0 ]; then echo "exit $ec due to '\$previous_command'"; fi; sudo pkill -f nvmf_tgt' SIGINT SIGTERM EXIT
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 
 sudo pkill -f nvmf_tgt
@@ -10,9 +10,9 @@ if ! [ -e "lib/nvme/nvme.o" ]; then
   export CFLAGS="-ggdb -O0"
   git submodule update --init
   ./configure
-  make -j$(getconf _NPROCESSORS_ONLN)
+  make DEBUG=1 -j$(getconf _NPROCESSORS_ONLN)
 else
-  make -j$(getconf _NPROCESSORS_ONLN)
+  make DEBUG=1 -j$(getconf _NPROCESSORS_ONLN)
 fi
 
 mkdir -p /dev/hugepages

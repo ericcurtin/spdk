@@ -45,8 +45,8 @@
 #include "spdk/rpc.h"
 #include "spdk/util.h"
 
-#define SPDK_APP_DEFAULT_LOG_LEVEL		SPDK_LOG_NOTICE
-#define SPDK_APP_DEFAULT_LOG_PRINT_LEVEL	SPDK_LOG_INFO
+#define SPDK_APP_DEFAULT_LOG_LEVEL		SPDK_LOG_DEBUG
+#define SPDK_APP_DEFAULT_LOG_PRINT_LEVEL	SPDK_LOG_DEBUG
 #define SPDK_APP_DEFAULT_NUM_TRACE_ENTRIES	SPDK_DEFAULT_NUM_TRACE_ENTRIES
 
 #define SPDK_APP_DPDK_DEFAULT_MEM_SIZE		-1
@@ -502,7 +502,7 @@ spdk_app_start(struct spdk_app_opts *opts_user, spdk_msg_fn start_fn,
 		sleep(10);
 	}
 
-	spdk_log_set_print_level(opts->print_level);
+	spdk_log_set_print_level(SPDK_LOG_DEBUG);
 
 #ifndef SPDK_NO_RLIMIT
 	if (opts->enable_coredump) {
@@ -950,6 +950,10 @@ out:
 	}
 	free(cmdline_short_opts);
 	free(cmdline_options);
+
+	spdk_log_set_level(SPDK_LOG_DEBUG);
+	spdk_log_set_print_level(SPDK_LOG_DEBUG);
+
 	return retval;
 }
 

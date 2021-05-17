@@ -67,7 +67,7 @@
 #define SPDK_ZEROCOPY
 #endif
 
-#define ericf(x, ...) printf("%s:%s:%d" x, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+#define ericf(x, ...) SPDK_DEBUGLOG("%s:%s:%d" x, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
 struct spdk_posix_sock {
 	struct spdk_sock	base;
@@ -701,7 +701,7 @@ retry:
 			}
 
 			/* bind OK */
-			SPDK_ERRLOG("%s:%s:%d listen\n", __func__, __FILE__, __LINE__);
+			SPDK_DEBUGLOG("%s:%s:%d listen\n", __func__, __FILE__, __LINE__);
 			rc = listen(fd, 512);
 			if (rc != 0) {
 				SPDK_ERRLOG("listen() failed, errno = %d\n", errno);
@@ -1301,7 +1301,7 @@ posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 static void
 posix_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 {
-        ericf("\n");
+//        ericf("\n");
 	int rc;
 
 	spdk_sock_request_queue(sock, req);
