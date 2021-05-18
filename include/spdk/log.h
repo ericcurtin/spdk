@@ -139,8 +139,12 @@ enum spdk_log_level spdk_log_get_print_level(void);
 
 #ifdef DEBUG
 
+#define SPDK_DEBUGLOG(...) do { } while (0)
+
+#if 0
 #define SPDK_DEBUGLOG(FLAG, ...)								\
         spdk_log(SPDK_LOG_DEBUG, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#endif
 
 #define SPDK_LOGDUMP(FLAG, LABEL, BUF, LEN)				\
 	do {								\
