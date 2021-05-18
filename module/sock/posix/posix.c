@@ -67,7 +67,7 @@
 #define SPDK_ZEROCOPY
 #endif
 
-#define ericf(x, ...) SPDK_DEBUGLOG("%s:%s:%d" x, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
 
 struct spdk_posix_sock {
 	struct spdk_sock	base;
@@ -701,7 +701,7 @@ retry:
 			}
 
 			/* bind OK */
-			SPDK_DEBUGLOG("%s:%s:%d listen\n", __func__, __FILE__, __LINE__);
+			SPDK_ERRLOG("%s:%s:%d listen\n", __func__, __FILE__, __LINE__);
 			rc = listen(fd, 512);
 			if (rc != 0) {
 				SPDK_ERRLOG("listen() failed, errno = %d\n", errno);

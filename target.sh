@@ -18,5 +18,5 @@ fi
 mkdir -p /dev/hugepages
 mountpoint -q /dev/hugepages || mount -t hugetlbfs nodev /dev/hugepages
 sudo /bin/bash -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
-sudo build/bin/nvmf_tgt -m 0xf
+sudo build/bin/nvmf_tgt -m 0xf 2>&1 
 
