@@ -877,7 +877,9 @@ posix_sock_accept(struct spdk_sock *_sock)
 		return NULL;
 	}
 
+#ifdef TLS
         new_sock->ssl = ssl;
+#endif
 
 	return &new_sock->base;
 
