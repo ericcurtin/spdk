@@ -4,6 +4,10 @@ set -e
 trap 'ec=$?; if [ $ec -ne 0 ]; then echo "exit $ec due to '\$previous_command'"; fi' EXIT
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 
+if [ -n "$1" ]; then
+  sed -i "s/^#define TLS//g" module/sock/posix/posix.c
+fi
+
 sudo scripts/rpc.py nvmf_create_transport -t TCP
 sudo scripts/rpc.py bdev_malloc_create -b Malloc0 200 512
 sudo scripts/rpc.py nvmf_create_subsystem nqn.2016-06.io.spdk:cnode1 -a -s SPDK00000000000001 -d SPDK_Controller1
