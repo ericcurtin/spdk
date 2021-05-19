@@ -6,6 +6,10 @@ trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 
 sudo pkill -f nvmf_tgt
 
+if [ -n "$1" ]; then
+  sed -i "s/^#define TLS//g" module/sock/posix/posix.c
+fi
+
 if ! [ -e "lib/nvme/nvme.o" ]; then
   export CFLAGS="-ggdb -O0"
   git submodule update --init
