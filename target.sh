@@ -10,13 +10,15 @@ if [ -n "$1" ]; then
   sed -i "s/^#define TLS//g" module/sock/posix/posix.c
 fi
 
+export CFLAGS="-ggdb -O0"
+export LDFLAGS="-rdynamic"
+
 if ! [ -e "lib/nvme/nvme.o" ]; then
-  export CFLAGS="-ggdb -O0"
   git submodule update --init
   ./configure
-  make DEBUG=1 -j$(getconf _NPROCESSORS_ONLN)
+  make DEBUG=1 V=1 -j$(getconf _NPROCESSORS_ONLN)
 else
-  make DEBUG=1 -j$(getconf _NPROCESSORS_ONLN)
+  make DEBUG=1 V=1 -j$(getconf _NPROCESSORS_ONLN)
 fi
 
 mkdir -p /dev/hugepages
