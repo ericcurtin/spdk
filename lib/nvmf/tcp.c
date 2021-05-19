@@ -1722,7 +1722,7 @@ nvmf_tcp_icreq_handle(struct spdk_nvmf_tcp_transport *ttransport,
 	}
 
 	/* MAXR2T is 0's based */
-	SPDK_DEBUGLOG(nvmf_tcp, "maxr2t =%u\n", (ic_req->maxr2t + 1u));
+	SPDK_ERRLOG("maxr2t =%u\n", (ic_req->maxr2t + 1u));
 
 	tqpair->host_hdgst_enable = ic_req->dgst.bits.hdgst_enable ? true : false;
 	if (!tqpair->host_hdgst_enable) {
@@ -1737,14 +1737,14 @@ nvmf_tcp_icreq_handle(struct spdk_nvmf_tcp_transport *ttransport,
 	tqpair->recv_buf_size = spdk_max(tqpair->recv_buf_size, MIN_SOCK_PIPE_SIZE);
 	/* Now that we know whether digests are enabled, properly size the receive buffer */
 	if (spdk_sock_set_recvbuf(tqpair->sock, tqpair->recv_buf_size) < 0) {
-		SPDK_WARNLOG("Unable to allocate enough memory for receive buffer on tqpair=%p with size=%d\n",
+		SPDK_ERRLOG("Unable to allocate enough memory for receive buffer on tqpair=%p with size=%d\n",
 			     tqpair,
 			     tqpair->recv_buf_size);
 		/* Not fatal. */
 	}
 
 	tqpair->cpda = spdk_min(ic_req->hpda, SPDK_NVME_TCP_CPDA_MAX);
-	SPDK_DEBUGLOG(nvmf_tcp, "cpda of tqpair=(%p) is : %u\n", tqpair, tqpair->cpda);
+	SPDK_ERRLOG("cpda of tqpair=(%p) is : %u\n", tqpair, tqpair->cpda);
 
 	rsp_pdu = tqpair->mgmt_pdu;
 
