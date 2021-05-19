@@ -1107,6 +1107,7 @@ static void
 nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 		       struct nvme_tcp_pdu *pdu)
 {
+        ericf("\n");
 	struct spdk_nvme_tcp_ic_resp *ic_resp = &pdu->hdr.ic_resp;
 	uint32_t error_offset = 0;
 	enum spdk_nvme_tcp_term_req_fes fes;
@@ -1477,7 +1478,7 @@ nvme_tcp_pdu_psh_handle(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 	assert(tqpair->recv_state == NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_PSH);
 	pdu = &tqpair->recv_pdu;
 
-	SPDK_DEBUGLOG(nvme, "enter: pdu type =%u\n", pdu->hdr.common.pdu_type);
+	SPDK_ERRLOG("enter: pdu type =%u\n", pdu->hdr.common.pdu_type);
 	/* check header digest if needed */
 	if (pdu->has_hdgst) {
 		crc32c = nvme_tcp_pdu_calc_header_digest(pdu);
