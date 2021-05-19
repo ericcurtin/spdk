@@ -204,7 +204,8 @@ posix_sock_getaddr(struct spdk_sock *_sock, char *saddr, int slen, uint16_t *spo
 	salen = sizeof sa;
 	rc = getpeername(sock->fd, (struct sockaddr *) &sa, &salen);
 	if (rc != 0) {
-		SPDK_ERRLOG("getpeername() failed (errno=%d)\n", errno);
+		SPDK_ERRLOG("getpeername() failed (errno=%d errstr='%s')\n", errno,
+                            strerror(errno));
 		return -1;
 	}
 
@@ -671,7 +672,7 @@ retry:
 		if (type == SPDK_SOCK_CREATE_LISTEN) {
 #ifdef TLS
                         ctx = create_context(TLS_server_method());
-                        ericf("reate_context(TLS_server_method())\n");
+                        ericf("create_context(TLS_server_method())\n");
                         if (!ctx) { 
                                 SPDK_ERRLOG("create_context() failed\n"); 
                                 return NULL;
@@ -833,7 +834,7 @@ posix_sock_accept(struct spdk_sock *_sock)
 	fd = rc;
 
 #ifdef TLS
-        SSL *ssl = create_ssl_object_server(sock->ctx, fd);
+        SSL* ssl = create_ssl_object_server(sock->ctx, fd);
         if (!ssl) {
                 goto err_handler;
         }
@@ -875,6 +876,8 @@ posix_sock_accept(struct spdk_sock *_sock)
 		close(fd);
 		return NULL;
 	}
+
+        new_sock->ssl = ssl;
 
 	return &new_sock->base;
 
@@ -1261,9 +1264,15 @@ SSL_writev(SSL *ssl, const struct iovec *iov, int iovcnt)
     for (i = 0; i < iovcnt; i++) {
         if ((n = SSL_write(ssl, iov[i].iov_base, iov[i].iov_len)) == -1) {
             rc = -1;
+            ericf("failed writing %d, SSL_write(%p, %p, %lu), \n", i, ssl, iov[i].iov_base, iov[i].iov_len);
+            if (SSL_get_error(ssl, n) == SSL_ERROR_SSL) {
+                    get_error();
+            }
+
             break;
         }
 
+        ericf("succeeded writing %d\n", i);
         rc += n;
     }
 

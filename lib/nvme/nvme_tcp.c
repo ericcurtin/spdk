@@ -58,6 +58,8 @@
 #define NVME_TCP_MAX_R2T_DEFAULT		1
 #define NVME_TCP_PDU_H2C_MIN_DATA_SIZE		4096
 
+#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
+
 /* NVMe TCP transport extensions for spdk_nvme_ctrlr */
 struct nvme_tcp_ctrlr {
 	struct spdk_nvme_ctrlr			ctrlr;
@@ -1087,14 +1089,18 @@ nvme_tcp_send_icreq_complete(void *cb_arg)
 {
 	struct nvme_tcp_qpair *tqpair = cb_arg;
 
-	SPDK_DEBUGLOG(nvme, "Complete the icreq send for tqpair=%p %u\n", tqpair, tqpair->qpair.id);
+	SPDK_ERRLOG("Complete the icreq send for tqpair=%p %u\n", tqpair, tqpair->qpair.id);
 
 	tqpair->flags.icreq_send_ack = true;
 
 	if (tqpair->state == NVME_TCP_QPAIR_STATE_INITIALIZING) {
-		SPDK_DEBUGLOG(nvme, "tqpair %p %u, finilize icresp\n", tqpair, tqpair->qpair.id);
+		SPDK_ERRLOG("tqpair %p %u, finilize icresp\n", tqpair, tqpair->qpair.id);
 		tqpair->state = NVME_TCP_QPAIR_STATE_RUNNING;
 	}
+        else {
+                SPDK_ERRLOG("The TCP/IP tqpair connection is not negotitated state=%d\n",
+                            tqpair->state);
+        }
 }
 
 static void
@@ -1133,8 +1139,8 @@ nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 
 	tqpair->flags.host_hdgst_enable = ic_resp->dgst.bits.hdgst_enable ? true : false;
 	tqpair->flags.host_ddgst_enable = ic_resp->dgst.bits.ddgst_enable ? true : false;
-	SPDK_DEBUGLOG(nvme, "host_hdgst_enable: %u\n", tqpair->flags.host_hdgst_enable);
-	SPDK_DEBUGLOG(nvme, "host_ddgst_enable: %u\n", tqpair->flags.host_ddgst_enable);
+	SPDK_ERRLOG("host_hdgst_enable: %u\n", tqpair->flags.host_hdgst_enable);
+	SPDK_ERRLOG("host_ddgst_enable: %u\n", tqpair->flags.host_ddgst_enable);
 
 	/* Now that we know whether digests are enabled, properly size the receive buffer to
 	 * handle several incoming 4K read commands according to SPDK_NVMF_TCP_RECV_BUF_SIZE_FACTOR
@@ -1150,7 +1156,7 @@ nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 	}
 
 	if (spdk_sock_set_recvbuf(tqpair->sock, recv_buf_size * SPDK_NVMF_TCP_RECV_BUF_SIZE_FACTOR) < 0) {
-		SPDK_WARNLOG("Unable to allocate enough memory for receive buffer on tqpair=%p with size=%d\n",
+		SPDK_ERRLOG("Unable to allocate enough memory for receive buffer on tqpair=%p with size=%d\n",
 			     tqpair,
 			     recv_buf_size);
 		/* Not fatal. */
@@ -1158,9 +1164,11 @@ nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 
 	nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_READY);
 
+        ericf("attempt to set NVME_TCP_QPAIR_STATE_INITIALIZING tqpair->flags.icreq_send_ack=%d\n",
+                tqpair->flags.icreq_send_ack);
 	if (!tqpair->flags.icreq_send_ack) {
 		tqpair->state = NVME_TCP_QPAIR_STATE_INITIALIZING;
-		SPDK_DEBUGLOG(nvme, "tqpair %p %u, waiting icreq ack\n", tqpair, tqpair->qpair.id);
+		SPDK_ERRLOG("tqpair %p %u, waiting icreq ack\n", tqpair, tqpair->qpair.id);
 		return;
 	}
 

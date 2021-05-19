@@ -1757,8 +1757,8 @@ nvmf_tcp_icreq_handle(struct spdk_nvmf_tcp_transport *ttransport,
 	ic_resp->dgst.bits.hdgst_enable = tqpair->host_hdgst_enable ? 1 : 0;
 	ic_resp->dgst.bits.ddgst_enable = tqpair->host_ddgst_enable ? 1 : 0;
 
-	SPDK_DEBUGLOG(nvmf_tcp, "host_hdgst_enable: %u\n", tqpair->host_hdgst_enable);
-	SPDK_DEBUGLOG(nvmf_tcp, "host_ddgst_enable: %u\n", tqpair->host_ddgst_enable);
+	SPDK_ERRLOG("host_hdgst_enable: %u\n", tqpair->host_hdgst_enable);
+	SPDK_ERRLOG("host_ddgst_enable: %u\n", tqpair->host_ddgst_enable);
 
 	tqpair->state = NVME_TCP_QPAIR_STATE_INITIALIZING;
 	nvmf_tcp_qpair_write_pdu(tqpair, rsp_pdu, nvmf_tcp_send_icresp_complete, tqpair);
