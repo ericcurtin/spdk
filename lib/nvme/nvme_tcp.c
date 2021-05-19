@@ -51,6 +51,8 @@
 
 #include "spdk_internal/nvme_tcp.h"
 
+#include <execinfo.h>
+
 #define NVME_TCP_RW_BUFFER_SIZE 131072
 #define NVME_TCP_TIME_OUT_IN_SECONDS 2
 
@@ -165,6 +167,19 @@ static void nvme_tcp_send_h2c_data(struct nvme_tcp_req *tcp_req);
 static int64_t nvme_tcp_poll_group_process_completions(struct spdk_nvme_transport_poll_group
 		*tgroup, uint32_t completions_per_qpair, spdk_nvme_disconnected_qpair_cb disconnected_qpair_cb);
 static void nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_pdu *pdu);
+
+static void print_trace(void) {
+    char **strings;
+    size_t i, size;
+    enum Constexpr { MAX_SIZE = 1024 };
+    void *array[MAX_SIZE];
+    size = backtrace(array, MAX_SIZE);
+    strings = backtrace_symbols(array, size);
+    for (i = 0; i < size; i++)
+        ericf("%s\n", strings[i]);
+    puts("");
+    free(strings);
+}
 
 static inline struct nvme_tcp_qpair *
 nvme_tcp_qpair(struct spdk_nvme_qpair *qpair)
@@ -1107,7 +1122,7 @@ static void
 nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 		       struct nvme_tcp_pdu *pdu)
 {
-        ericf("\n");
+        print_trace();
 	struct spdk_nvme_tcp_ic_resp *ic_resp = &pdu->hdr.ic_resp;
 	uint32_t error_offset = 0;
 	enum spdk_nvme_tcp_term_req_fes fes;
