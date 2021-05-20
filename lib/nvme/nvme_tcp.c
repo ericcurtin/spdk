@@ -50,6 +50,7 @@
 #include "spdk/util.h"
 
 #include "spdk_internal/nvme_tcp.h"
+#include "../../staging/bandicoot.h"
 
 #include <execinfo.h>
 
@@ -168,18 +169,7 @@ static int64_t nvme_tcp_poll_group_process_completions(struct spdk_nvme_transpor
 		*tgroup, uint32_t completions_per_qpair, spdk_nvme_disconnected_qpair_cb disconnected_qpair_cb);
 static void nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_pdu *pdu);
 
-static void print_trace(void) {
-    char **strings;
-    size_t i, size;
-    enum Constexpr { MAX_SIZE = 1024 };
-    void *array[MAX_SIZE];
-    size = backtrace(array, MAX_SIZE);
-    strings = backtrace_symbols(array, size);
-    for (i = 0; i < size; i++)
-        ericf("%s\n", strings[i]);
-    puts("");
-    free(strings);
-}
+#define print_trace() char* out = bt(); printf("%s", out); free(out);
 
 static inline struct nvme_tcp_qpair *
 nvme_tcp_qpair(struct spdk_nvme_qpair *qpair)
