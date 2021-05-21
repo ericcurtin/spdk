@@ -54,7 +54,7 @@
 #include <execinfo.h>
 
 #define NVME_TCP_RW_BUFFER_SIZE 131072
-#define NVME_TCP_TIME_OUT_IN_SECONDS 2
+#define NVME_TCP_TIME_OUT_IN_SECONDS 4
 
 #define NVME_TCP_HPDA_DEFAULT			0
 #define NVME_TCP_MAX_R2T_DEFAULT		1
@@ -1743,6 +1743,7 @@ fail:
 static void
 nvme_tcp_qpair_sock_cb(void *ctx, struct spdk_sock_group *group, struct spdk_sock *sock)
 {
+        ericf("\n");
 	struct spdk_nvme_qpair *qpair = ctx;
 	struct nvme_tcp_poll_group *pgroup = nvme_tcp_poll_group(qpair->poll_group);
 	int32_t num_completions;
@@ -1770,6 +1771,7 @@ dummy_disconnected_qpair_cb(struct spdk_nvme_qpair *qpair, void *poll_group_ctx)
 static int
 nvme_tcp_qpair_icreq_send(struct nvme_tcp_qpair *tqpair)
 {
+        ericf("\n");
 	struct spdk_nvme_tcp_ic_req *ic_req;
 	struct nvme_tcp_pdu *pdu;
 	uint64_t icreq_timeout_tsc;
@@ -1798,6 +1800,7 @@ nvme_tcp_qpair_icreq_send(struct nvme_tcp_qpair *tqpair)
 		} else {
 			rc = nvme_tcp_qpair_process_completions(&tqpair->qpair, 0);
 		}
+                ericf("tqpair->qpair.poll_group: %p tqpair->state: %d rc: %d\n", tqpair->qpair.poll_group, tqpair->state, rc); 
 	} while ((tqpair->state != NVME_TCP_QPAIR_STATE_RUNNING) &&
 		 (rc >= 0) && (spdk_get_ticks() <= icreq_timeout_tsc));
 
@@ -1806,7 +1809,7 @@ nvme_tcp_qpair_icreq_send(struct nvme_tcp_qpair *tqpair)
 		return -1;
 	}
 
-	SPDK_DEBUGLOG(nvme, "Succesfully construct the tqpair=%p via correct icresp\n", tqpair);
+	SPDK_ERRLOG("Succesfully construct the tqpair=%p via correct icresp\n", tqpair);
 
 	return 0;
 }
@@ -2198,6 +2201,7 @@ static int64_t
 nvme_tcp_poll_group_process_completions(struct spdk_nvme_transport_poll_group *tgroup,
 					uint32_t completions_per_qpair, spdk_nvme_disconnected_qpair_cb disconnected_qpair_cb)
 {
+        ericf("\n");
 	struct nvme_tcp_poll_group *group = nvme_tcp_poll_group(tgroup);
 	struct spdk_nvme_qpair *qpair, *tmp_qpair;
 	struct nvme_tcp_qpair *tqpair, *tmp_tqpair;
