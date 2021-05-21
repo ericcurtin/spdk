@@ -55,6 +55,8 @@
 #define SPDK_NVMF_TCP_DEFAULT_CONTROL_MSG_NUM 32
 #define SPDK_NVMF_TCP_DEFAULT_SUCCESS_OPTIMIZATION true
 
+#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
+
 const struct spdk_nvmf_transport_ops spdk_nvmf_transport_tcp;
 
 /* spdk nvmf related structure */
@@ -783,6 +785,7 @@ nvmf_tcp_qpair_disconnect(struct spdk_nvmf_tcp_qpair *tqpair)
 
 	if (tqpair->state <= NVME_TCP_QPAIR_STATE_RUNNING) {
 		tqpair->state = NVME_TCP_QPAIR_STATE_EXITING;
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 		nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 		spdk_poller_unregister(&tqpair->timeout_poller);
 
@@ -1321,6 +1324,7 @@ nvmf_tcp_send_c2h_term_req(struct spdk_nvmf_tcp_qpair *tqpair, struct nvme_tcp_p
 
 	/* Contain the header of the wrong received pdu */
 	c2h_term_req->common.plen = c2h_term_req->common.hlen + copy_len;
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 	nvmf_tcp_qpair_write_pdu(tqpair, rsp_pdu, nvmf_tcp_send_c2h_term_req_complete, tqpair);
 }
@@ -1646,6 +1650,7 @@ nvmf_tcp_h2c_term_req_payload_handle(struct spdk_nvmf_tcp_qpair *tqpair,
 	struct spdk_nvme_tcp_term_req_hdr *h2c_term_req = &pdu->hdr.term_req;
 
 	nvmf_tcp_h2c_term_req_dump(h2c_term_req);
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 }
 
@@ -2484,6 +2489,7 @@ nvmf_tcp_req_process(struct spdk_nvmf_tcp_transport *ttransport,
 			if (rc < 0) {
 				STAILQ_REMOVE_HEAD(&group->pending_buf_queue, buf_link);
 				/* Reset the tqpair receving pdu state */
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 				nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 				nvmf_tcp_req_set_state(tcp_req, TCP_REQUEST_STATE_READY_TO_COMPLETE);
 				break;

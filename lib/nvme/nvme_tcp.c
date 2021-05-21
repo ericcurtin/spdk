@@ -891,6 +891,7 @@ nvme_tcp_qpair_send_h2c_term_req(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_
 
 	/* Contain the header len of the wrong received pdu */
 	h2c_term_req->common.plen = h2c_term_req->common.hlen + copy_len;
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 	nvme_tcp_qpair_write_pdu(tqpair, rsp_pdu, nvme_tcp_qpair_send_h2c_term_req_complete, tqpair);
 
@@ -1060,6 +1061,7 @@ nvme_tcp_c2h_term_req_payload_handle(struct nvme_tcp_qpair *tqpair,
 				     struct nvme_tcp_pdu *pdu)
 {
 	nvme_tcp_c2h_term_req_dump(&pdu->hdr.term_req);
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 }
 
@@ -1565,6 +1567,7 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 							sizeof(struct spdk_nvme_tcp_common_pdu_hdr) - pdu->ch_valid_bytes,
 							(uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
 				if (rc < 0) {
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 					nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 					break;
 				}
@@ -1585,6 +1588,7 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 						pdu->psh_len - pdu->psh_valid_bytes,
 						(uint8_t *)&pdu->hdr.raw + sizeof(struct spdk_nvme_tcp_common_pdu_hdr) + pdu->psh_valid_bytes);
 			if (rc < 0) {
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 				nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 				break;
 			}
@@ -1615,6 +1619,7 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 
 			rc = nvme_tcp_read_payload_data(tqpair->sock, pdu);
 			if (rc < 0) {
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 				nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 				break;
 			}
