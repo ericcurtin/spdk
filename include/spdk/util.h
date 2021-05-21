@@ -39,6 +39,7 @@
 #define SPDK_UTIL_H
 
 #include "spdk/stdinc.h"
+#include <execinfo.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -182,6 +183,25 @@ spdk_sn32_gt(uint32_t s1, uint32_t s2)
 	       ((s1 < s2 && s2 - s1 > SPDK_SN32_CMPMAX) ||
 		(s1 > s2 && s1 - s2 < SPDK_SN32_CMPMAX));
 }
+
+/* Obtain a backtrace and print it to @code{stdout}. */
+#define print_trace(x) \
+do { \
+  const size_t max_size = 16; \
+  void *array[max_size]; \
+  char **strings; \
+  int size; \
+\
+  size = backtrace (array, max_size); \
+  strings = backtrace_symbols (array, size); \
+  if (strings != NULL) \
+  { \
+    for (int i = 0; i < size; i++) \
+      printf ("%s\n", strings[i]); \
+  } \
+\
+  free (strings); \
+} while(0)
 
 #ifdef __cplusplus
 }

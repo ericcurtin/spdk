@@ -781,6 +781,7 @@ static void nvmf_tcp_qpair_set_recv_state(struct spdk_nvmf_tcp_qpair *tqpair,
 static void
 nvmf_tcp_qpair_disconnect(struct spdk_nvmf_tcp_qpair *tqpair)
 {
+        print_trace();
 	SPDK_DEBUGLOG(nvmf_tcp, "Disconnecting qpair %p\n", tqpair);
 
 	if (tqpair->state <= NVME_TCP_QPAIR_STATE_RUNNING) {

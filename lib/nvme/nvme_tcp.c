@@ -51,8 +51,6 @@
 
 #include "spdk_internal/nvme_tcp.h"
 
-#include <execinfo.h>
-
 #define NVME_TCP_RW_BUFFER_SIZE 131072
 #define NVME_TCP_TIME_OUT_IN_SECONDS 4
 
@@ -167,25 +165,6 @@ static void nvme_tcp_send_h2c_data(struct nvme_tcp_req *tcp_req);
 static int64_t nvme_tcp_poll_group_process_completions(struct spdk_nvme_transport_poll_group
 		*tgroup, uint32_t completions_per_qpair, spdk_nvme_disconnected_qpair_cb disconnected_qpair_cb);
 static void nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_pdu *pdu);
-
-/* Obtain a backtrace and print it to @code{stdout}. */
-static void print_trace (void)
-{
-  const size_t max_size = 16;
-  void *array[max_size];
-  char **strings;
-  int size;
-
-  size = backtrace (array, max_size);
-  strings = backtrace_symbols (array, size);
-  if (strings != NULL)
-  {
-    for (int i = 1; i < size; i++)
-      printf ("%s\n", strings[i]);
-  }
-
-  free (strings);
-}
 
 static inline struct nvme_tcp_qpair *
 nvme_tcp_qpair(struct spdk_nvme_qpair *qpair)
