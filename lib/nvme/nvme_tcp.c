@@ -1631,17 +1631,20 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 			break;
 		case NVME_TCP_PDU_RECV_STATE_ERROR:
 			rc = NVME_TCP_PDU_FATAL;
+                        ericf("%d\n", rc);
 			break;
 		default:
 			assert(0);
 			break;
 		}
+ ericf("%d\n", rc);
 	} while (prev_state != tqpair->recv_state);
 
 out:
 	*reaped += tqpair->async_complete;
 	tqpair->async_complete = 0;
 
+        ericf("%d\n", rc);
 	return rc;
 }
 
@@ -1708,9 +1711,11 @@ nvme_tcp_qpair_process_completions(struct spdk_nvme_qpair *qpair, uint32_t max_c
 	do {
 		rc = nvme_tcp_read_pdu(tqpair, &reaped);
 		if (rc < 0) {
-			SPDK_DEBUGLOG(nvme, "Error polling CQ! (%d): %s\n",
-				      errno, spdk_strerror(errno));
-			goto fail;
+			SPDK_ERRLOG("Error polling CQ! rc=%d (%d): %s\n",
+				      rc, errno, spdk_strerror(errno));
+//                        if (errno != EAGAIN) {
+               			goto fail;
+//                        }
 		} else if (rc == 0) {
 			/* Partial PDU is read */
 			break;
