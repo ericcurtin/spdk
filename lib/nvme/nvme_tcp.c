@@ -900,7 +900,7 @@ nvme_tcp_pdu_ch_handle(struct nvme_tcp_qpair *tqpair)
 		}
 	} else {
 		if (tqpair->state != NVME_TCP_QPAIR_STATE_RUNNING) {
-			SPDK_ERRLOG("The TCP/IP tqpair connection is not negotitated state=%d\n", tqpair->state);
+			SPDK_ERRLOG("The TCP/IP tqpair connection is not negotitated state=%d\n", tqpair->state); // Here friday
 			fes = SPDK_NVME_TCP_TERM_REQ_FES_PDU_SEQUENCE_ERROR;
 			goto err;
 		}
@@ -1097,6 +1097,7 @@ nvme_tcp_send_icreq_complete(void *cb_arg)
 
 	if (tqpair->state == NVME_TCP_QPAIR_STATE_INITIALIZING) {
 		SPDK_ERRLOG("tqpair %p %u, finilize icresp\n", tqpair, tqpair->qpair.id);
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 		tqpair->state = NVME_TCP_QPAIR_STATE_RUNNING;
 	}
         else {
@@ -1175,6 +1176,7 @@ nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 		return;
 	}
 
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair->state = NVME_TCP_QPAIR_STATE_RUNNING;
 	return;
 end:

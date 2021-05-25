@@ -1705,6 +1705,7 @@ nvmf_tcp_send_icresp_complete(void *cb_arg)
 {
 	struct spdk_nvmf_tcp_qpair *tqpair = cb_arg;
 
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair->state = NVME_TCP_QPAIR_STATE_RUNNING;
 }
 

@@ -563,8 +563,10 @@ test_nvmf_tcp_send_c2h_data(void)
 	tqpair.qpair.transport = &ttransport.transport;
 
 	/* Set qpair state to make unrelated operations NOP */
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
 	tqpair.recv_state = NVME_TCP_PDU_RECV_STATE_ERROR;
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 
 	tcp_req.req.cmd = (union nvmf_h2c_msg *)&tcp_req.cmd;
 
@@ -637,7 +639,9 @@ test_nvmf_tcp_h2c_data_hdr_handle(void)
 	TAILQ_INIT(&tqpair.tcp_req_working_queue);
 
 	/* Set qpair state to make unrelated operations NOP */
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.recv_state = NVME_TCP_PDU_RECV_STATE_ERROR;
 
 	tcp_req.req.iov[0].iov_base = (void *)0xDEADBEEF;
@@ -713,6 +717,8 @@ test_nvmf_tcp_incapsule_data_handle(void)
 	TAILQ_INSERT_TAIL(&tqpair.tcp_req_free_queue, &tcp_req2, state_link);
 	tqpair.state_cntr[TCP_REQUEST_STATE_FREE]++;
 	tqpair.qpair.transport = &ttransport.transport;
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
 	tqpair.recv_state = NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_PSH;
 	tqpair.qpair.state = SPDK_NVMF_QPAIR_ACTIVE;
