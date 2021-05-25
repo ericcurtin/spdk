@@ -454,6 +454,13 @@ end:
 
 static SSL_CTX *create_context(const SSL_METHOD *method)
 {
+#if 0
+    SSL_library_init();
+    SSL_load_error_strings();
+    ERR_load_crypto_strings();
+    ERR_load_BIO_strings();
+    OpenSSL_add_all_algorithms();
+#endif
 //#ifdef CLIENT
 //  ctx = SSL_CTX_new(TLS_client_method());
 //#else
@@ -548,6 +555,7 @@ static void get_error(void) {
   unsigned long error;
   const char* file = NULL;
   int line = 0;
+  ERR_print_errors_fp(stderr);
   error = ERR_get_error_line(&file, &line);
   SPDK_ERRLOG("Error reason=%d on [%s:%d]\n", ERR_GET_REASON(error), file, line);
 }
@@ -555,12 +563,14 @@ static void get_error(void) {
 static void do_cleanup(SSL_CTX* ctx, SSL* ssl) {
   int fd;
   if (ssl) {
+    ericf("SSL cleanup\n");
     fd = SSL_get_fd(ssl);
     SSL_free(ssl);
     close(fd);
   }
 
   if (ctx) {
+    ericf("SSL context cleanup\n");
     SSL_CTX_free(ctx);
   }
 }
@@ -733,8 +743,7 @@ retry:
 
 #ifdef TLS
                         ssl = create_ssl_object_client(ctx, fd);
-                        if (!ctx) {
-                                SPDK_ERRLOG("create_context() failed\n");
+                        if (!ssl) {
                                 goto err_handler;
                         }
 
@@ -747,6 +756,9 @@ retry:
 
                                 goto err_handler;
                         }
+
+SPDK_ERRLOG("SSL_connect suceeded: %d\n", rc);
+ericf("Negotiated Cipher suite:%s\n", SSL_CIPHER_get_name(SSL_get_current_cipher(ssl)));
 #endif
 
 			enable_zcopy_impl_opts = g_spdk_posix_sock_impl_opts.enable_zerocopy_send_client &&
@@ -1144,29 +1156,55 @@ posix_sock_recv_from_pipe(struct spdk_posix_sock *sock, struct iovec *diov, int 
 }
 
 #ifdef TLS
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 static int
 SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
 {
-    int i;
-    int n;
-    int rc = 0;
+  ericf("\n");
+  size_t bytes = 0;
+  for (int i = 0; i < iovcnt; ++i)
+    {
+      if (SSIZE_MAX - bytes < iov[i].iov_len)
+	{
+	  return -1;
+	}
+      bytes += iov[i].iov_len;
+    }
 
-    for (i = 0; i < iovcnt; i++) {
-        if ((n = SSL_read(ssl, iov[i].iov_base, iov[i].iov_len)) <= 0) {
-            rc = n;
-            break;
-        }
+  char *buffer = (char *) alloca (bytes);
+  ssize_t bytes_read = SSL_read (ssl, buffer, bytes);
+  if (bytes_read < 0) {
+    const int ssl_get_error = SSL_get_error(ssl, bytes_read);
+    ericf("failed reading, %ld = SSL_read(%p, %p, %lu), %d = SSL_get_error(%p, %ld), %d = errno\n", bytes_read, ssl, buffer, bytes, ssl_get_error, ssl, bytes_read, errno);
+            if (ssl_get_error == SSL_ERROR_SSL) {
+                    get_error();
+            }
+    return -1;
+  }
 
-        rc += n;
-   }
+  ericf("successful read\n");
+  bytes = bytes_read;
+  for (int i = 0; i < iovcnt; ++i)
+    {
+      size_t copy = MIN (iov[i].iov_len, bytes);
 
-   return rc;
+      (void) memcpy ((void *) iov[i].iov_base, (void *) buffer, copy);
+
+      buffer += copy;
+      bytes -= copy;
+      if (bytes == 0)
+	break;
+    }
+
+  return bytes_read;
 }
 #endif
 
 static inline ssize_t
 posix_sock_read(struct spdk_posix_sock *sock)
 {
+        ericf("posix_sock_read\n");
 	struct iovec iov[2];
 	int bytes;
 	struct spdk_posix_sock_group_impl *group;
@@ -1205,17 +1243,28 @@ posix_sock_read(struct spdk_posix_sock *sock)
 static ssize_t
 posix_sock_readv(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 {
+        ericf("posix_sock_readv\n");
 	struct spdk_posix_sock *sock = __posix_sock(_sock);
 	struct spdk_posix_sock_group_impl *group = __posix_group_impl(sock->base.group_impl);
 	int rc, i;
 	size_t len;
 
 	if (sock->recv_pipe == NULL) {
+ericf("sock->recv_pipe == NULL, %p = group, %d = sock->pending_events\n", group, sock->pending_events);
 		if (group && sock->pending_events) {
 			sock->pending_events = false;
 			TAILQ_REMOVE(&group->pending_events, sock, link);
 		}
-		return readv(sock->fd, iov, iovcnt);
+#ifdef TLS
+ericf("SSL_readv(%p, %p, %d)\n", sock->ssl, iov, iovcnt);
+                return SSL_readv(sock->ssl, iov, iovcnt);
+#else
+ericf("readv1\n");
+                        ssize_t r = readv(sock->fd, iov, iovcnt);
+                        ericf("%ld\n", r);
+                        return r;
+
+#endif
 	}
 
 	len = 0;
@@ -1231,7 +1280,15 @@ posix_sock_readv(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 				sock->pending_events = false;
 				TAILQ_REMOVE(&group->pending_events, sock, link);
 			}
-			return readv(sock->fd, iov, iovcnt);
+#ifdef TLS
+ericf("SSL_readv2\n");
+                return SSL_readv(sock->ssl, iov, iovcnt);
+#else
+ericf("readv2\n");
+			ssize_t r = readv(sock->fd, iov, iovcnt);
+                        ericf("%ld\n", r);
+                        return r;
+#endif
 		}
 
 		/* Otherwise, do a big read into our pipe */
@@ -1247,6 +1304,7 @@ posix_sock_readv(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 static ssize_t
 posix_sock_recv(struct spdk_sock *sock, void *buf, size_t len)
 {
+        ericf("posix_sock_recv\n");
 	struct iovec iov[1];
 
 	iov[0].iov_base = buf;
@@ -1265,11 +1323,13 @@ SSL_writev(SSL *ssl, const struct iovec *iov, int iovcnt)
 
     for (i = 0; i < iovcnt; i++) {
         if ((n = SSL_write(ssl, iov[i].iov_base, iov[i].iov_len)) == -1) {
-            rc = -1;
-            ericf("failed writing %d, SSL_write(%p, %p, %lu), \n", i, ssl, iov[i].iov_base, iov[i].iov_len);
-            if (SSL_get_error(ssl, n) == SSL_ERROR_SSL) {
+            rc = n;
+            const int ssl_get_error = SSL_get_error(ssl, n);
+            ericf("failed writing, %d = SSL_write(%p, %p, %lu), %d = SSL_get_error(%p, %d), %d = errno\n", n, ssl, iov[i].iov_base, iov[i].iov_len, ssl_get_error, ssl, n, errno);
+            if (ssl_get_error == SSL_ERROR_SSL) {
                     get_error();
             }
+      
 
             break;
         }
@@ -1285,7 +1345,7 @@ SSL_writev(SSL *ssl, const struct iovec *iov, int iovcnt)
 static ssize_t
 posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 {
-        ericf("\n");
+        ericf("posix_sock_write\n");
 	struct spdk_posix_sock *sock = __posix_sock(_sock);
 	int rc;
 
