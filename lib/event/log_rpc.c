@@ -121,7 +121,7 @@ rpc_log_set_print_level(struct spdk_jsonrpc_request *request,
 		goto invalid;
 	}
 
-	spdk_log_set_print_level(SPDK_LOG_DEBUG);
+	spdk_log_set_print_level(level);
 	free_rpc_log_level(&req);
 
 	spdk_jsonrpc_send_bool_response(request, true);

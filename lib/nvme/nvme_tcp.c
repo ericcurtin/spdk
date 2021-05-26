@@ -52,7 +52,7 @@
 #include "spdk_internal/nvme_tcp.h"
 
 #define NVME_TCP_RW_BUFFER_SIZE 131072
-#define NVME_TCP_TIME_OUT_IN_SECONDS 4
+#define NVME_TCP_TIME_OUT_IN_SECONDS 2
 
 #define NVME_TCP_HPDA_DEFAULT			0
 #define NVME_TCP_MAX_R2T_DEFAULT		1

@@ -87,7 +87,7 @@ static struct vfio_cfg g_vfio = {
 #endif
 #endif
 
-#ifdef DEBUG
+#if DEBUG
 #define DEBUG_PRINT(...) SPDK_ERRLOG(__VA_ARGS__)
 #else
 #define DEBUG_PRINT(...)

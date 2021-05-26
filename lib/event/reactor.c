@@ -631,12 +631,10 @@ get_rusage(struct spdk_reactor *reactor)
 	}
 
 	if (rusage.ru_nvcsw != reactor->rusage.ru_nvcsw || rusage.ru_nivcsw != reactor->rusage.ru_nivcsw) {
-#if 0
 		SPDK_INFOLOG(reactor,
 			     "Reactor %d: %ld voluntary context switches and %ld involuntary context switches in the last second.\n",
 			     reactor->lcore, rusage.ru_nvcsw - reactor->rusage.ru_nvcsw,
 			     rusage.ru_nivcsw - reactor->rusage.ru_nivcsw);
-#endif
 	}
 	reactor->rusage = rusage;
 

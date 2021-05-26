@@ -448,8 +448,7 @@ end:
 
 #ifdef TLS
 #define PSK_ID                                                            \
-  "nqn.2014-08.org.nvmexpress:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6 " \
-  "nqn.2014-08.org.nvmexpress:uuid:36ebf5a9-1df9-47b3-a6d0-e9"
+  "nqn.2014-08.org.nvmexpress:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 #define PSK_KEY "1234567890ABCDEF"
 
 static SSL_CTX *create_context(const SSL_METHOD *method)
@@ -532,7 +531,7 @@ static SSL *create_ssl_object_server(SSL_CTX *ctx, int fd)
 
 	SSL_set_fd(ssl, fd);
 	SSL_set_psk_server_callback(ssl, tls_psk_out_of_bound_serv_cb);
-	SPDK_ERRLOG("SSL object creation finished\n");
+	SPDK_ERRLOG("SSL object creation finished: %p\n", ssl);
 
 	return ssl;
 }
@@ -546,7 +545,7 @@ static SSL *create_ssl_object_client(SSL_CTX *ctx, int fd) {
 
         SSL_set_fd(ssl, fd);
         SSL_set_psk_client_callback(ssl, tls_psk_out_of_bound_client_cb); 
-        SPDK_ERRLOG("SSL object creation finished\n");
+        SPDK_ERRLOG("SSL object creation finished: %p\n", ssl);
 
         return ssl;
 }
@@ -1161,43 +1160,45 @@ posix_sock_recv_from_pipe(struct spdk_posix_sock *sock, struct iovec *diov, int 
 static int
 SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
 {
-  ericf("\n");
-  size_t bytes = 0;
-  for (int i = 0; i < iovcnt; ++i)
-    {
-      if (SSIZE_MAX - bytes < iov[i].iov_len)
-	{
-	  return -1;
-	}
-      bytes += iov[i].iov_len;
+  int res, err;
+  unsigned long serr; // NOLINT(runtime/int)
+  const char *file;
+  int line;
+  uint64_t total_read = 0;
+
+  for (int i = 0; i < iovcnt; i++) {
+    if (iov[i].iov_len == 0) {
+      continue;
     }
 
-  char *buffer = (char *) alloca (bytes);
-  ssize_t bytes_read = SSL_read (ssl, buffer, bytes);
-  if (bytes_read < 0) {
-    const int ssl_get_error = SSL_get_error(ssl, bytes_read);
-    ericf("failed reading, %ld = SSL_read(%p, %p, %lu), %d = SSL_get_error(%p, %ld), %d = errno\n", bytes_read, ssl, buffer, bytes, ssl_get_error, ssl, bytes_read, errno);
-            if (ssl_get_error == SSL_ERROR_SSL) {
-                    get_error();
-            }
-    return -1;
+    res = SSL_read(ssl, iov[i].iov_base, iov[i].iov_len);
+
+    if (res > 0) {
+      total_read += res;
+      continue;
+    }
+    err = SSL_get_error(ssl, res);
+
+    switch (err) {
+      case SSL_ERROR_WANT_READ:
+        ericf("SSL_ERROR_WANT_READ\n");
+        break;
+
+      case SSL_ERROR_WANT_WRITE:
+        ericf("SSL_ERROR_WANT_WRITE\n");
+        break;
+
+      default:
+        while ((serr = ERR_get_error_line(&file, &line)) != 0) {
+          char ebuf[128];
+          ERR_error_string_n(serr, ebuf, sizeof(ebuf));
+          ericf("SSL err: %s:%d %lu %s\n", file, line, serr, ebuf);
+        }
+    }
+    break;
   }
 
-  ericf("successful read\n");
-  bytes = bytes_read;
-  for (int i = 0; i < iovcnt; ++i)
-    {
-      size_t copy = MIN (iov[i].iov_len, bytes);
-
-      (void) memcpy ((void *) iov[i].iov_base, (void *) buffer, copy);
-
-      buffer += copy;
-      bytes -= copy;
-      if (bytes == 0)
-	break;
-    }
-
-  return bytes_read;
+  return total_read;
 }
 #endif
 
@@ -1257,11 +1258,17 @@ ericf("sock->recv_pipe == NULL, %p = group, %d = sock->pending_events\n", group,
 		}
 #ifdef TLS
 ericf("SSL_readv(%p, %p, %d)\n", sock->ssl, iov, iovcnt);
-                return SSL_readv(sock->ssl, iov, iovcnt);
+                ssize_t r = SSL_readv(sock->ssl, iov, iovcnt);
+ericf("%ld\n", r);
 #else
 ericf("readv1\n");
                         ssize_t r = readv(sock->fd, iov, iovcnt);
                         ericf("%ld\n", r);
+for (int i = 0; i < iovcnt; ++i) {
+  ericf("data %d: %.*s\n", i, (int)iov[i].iov_len, (char*)iov[i].iov_base);
+}
+
+                        exit(0);
                         return r;
 
 #endif
@@ -1372,7 +1379,7 @@ posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 static void
 posix_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 {
-//        ericf("\n");
+        ericf("\n");
 	int rc;
 
 	spdk_sock_request_queue(sock, req);

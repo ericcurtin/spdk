@@ -39,8 +39,6 @@
 #ifndef SPDK_LOG_H
 #define SPDK_LOG_H
 
-#define DEBUG
-
 #include "spdk/stdinc.h"
 #include "spdk/queue.h"
 
@@ -135,16 +133,21 @@ enum spdk_log_level spdk_log_get_print_level(void);
 #define SPDK_PRINTF(...) \
 	spdk_log(SPDK_LOG_NOTICE, NULL, -1, NULL, __VA_ARGS__)
 #define SPDK_INFOLOG(FLAG, ...)									\
-        spdk_log(SPDK_LOG_INFO, __FILE__, __LINE__, __func__, __VA_ARGS__)
+	do {											\
+		extern struct spdk_log_flag SPDK_LOG_##FLAG;					\
+		if (SPDK_LOG_##FLAG.enabled) {							\
+			spdk_log(SPDK_LOG_INFO, __FILE__, __LINE__, __func__, __VA_ARGS__);	\
+		}										\
+	} while (0)
 
 #ifdef DEBUG
-
-#define SPDK_DEBUGLOG(...) do { } while (0)
-
-#if 0
 #define SPDK_DEBUGLOG(FLAG, ...)								\
-        spdk_log(SPDK_LOG_DEBUG, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#endif
+	do {											\
+		extern struct spdk_log_flag SPDK_LOG_##FLAG;					\
+		if (SPDK_LOG_##FLAG.enabled) {							\
+			spdk_log(SPDK_LOG_DEBUG, __FILE__, __LINE__, __func__, __VA_ARGS__);	\
+		}										\
+	} while (0)
 
 #define SPDK_LOGDUMP(FLAG, LABEL, BUF, LEN)				\
 	do {								\
@@ -272,7 +275,5 @@ void spdk_log_usage(FILE *f, const char *log_arg);
 #ifdef __cplusplus
 }
 #endif
-
-#undef DEBUG
 
 #endif /* SPDK_LOG_H */
