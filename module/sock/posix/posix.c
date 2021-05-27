@@ -551,12 +551,13 @@ static SSL *create_ssl_object_client(SSL_CTX *ctx, int fd) {
 }
 
 static void get_error(void) {
-  unsigned long error;
-  const char* file = NULL;
-  int line = 0;
+//  unsigned long error;
+//  const char* file = NULL;
+//  int line = 0;
+SPDK_ERRLOG("");
   ERR_print_errors_fp(stderr);
-  error = ERR_get_error_line(&file, &line);
-  SPDK_ERRLOG("Error reason=%d on [%s:%d]\n", ERR_GET_REASON(error), file, line);
+//  error = ERR_get_error_line(&file, &line);
+//  SPDK_ERRLOG("SSL_ERROR_SSL: Error reason=%d on [%s:%d]\n", ERR_GET_REASON(error), file, line);
 }
 
 static void do_cleanup(SSL_CTX* ctx, SSL* ssl) {
@@ -680,6 +681,13 @@ retry:
 
 		if (type == SPDK_SOCK_CREATE_LISTEN) {
 #ifdef TLS
+    /* LIBSSL  init  */  
+    SSL_library_init();  
+    /* Load all SSL algorithm*/  
+    OpenSSL_add_all_algorithms();  
+    /*Load all SSL error*/  
+    SSL_load_error_strings();  
+    /* Produce a SSL CTX in SSL V2 and V3 standards compliant way */  
                         ctx = create_context(TLS_server_method());
                         ericf("create_context(TLS_server_method())\n");
                         if (!ctx) { 
@@ -748,10 +756,40 @@ retry:
 
                         rc = SSL_connect(ssl);
                         if (rc != 1) {
-				SPDK_ERRLOG("SSL_connect failed%d\n", rc);
-                                if (SSL_get_error(ssl, rc) == SSL_ERROR_SSL) {
-                                        get_error();
-                                }
+                           int ssl_get_error = SSL_get_error(ssl, rc);
+                           if (ssl_get_error == SSL_ERROR_SSL) {
+                             get_error();
+                           }
+else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+ericf("SSL_ERROR_WANT_READ\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
+ericf("SSL_ERROR_WANT_WRITE\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
+ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
+}
+else if (ssl_get_error == SSL_ERROR_SYSCALL) {
+ericf("SSL_ERROR_SYSCALL\n");
+}
+else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
+ericf("SSL_ERROR_ZERO_RETURN\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CONNECT) {
+ericf("SSL_ERROR_WANT_CONNECT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ACCEPT) {
+ericf("SSL_ERROR_WANT_ACCEPT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC) {
+ericf("SSL_ERROR_WANT_ASYNC\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC_JOB) {
+ericf("SSL_ERROR_WANT_ASYNC_JOB\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
+ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
+}
 
                                 goto err_handler;
                         }
@@ -844,31 +882,12 @@ posix_sock_accept(struct spdk_sock *_sock)
 
 	fd = rc;
 
-#ifdef TLS
-        SSL* ssl = create_ssl_object_server(sock->ctx, fd);
-        if (!ssl) {
-                goto err_handler;
+        flag = fcntl(fd, F_GETFL);
+        if ((!(flag & O_NONBLOCK)) && (fcntl(fd, F_SETFL, flag | O_NONBLOCK) < 0)) {
+                SPDK_ERRLOG("fcntl can't set nonblocking mode for socket, fd: %d (%d)\n", fd, errno);
+                close(fd);
+                return NULL;
         }
-
-        rc = SSL_accept(ssl);
-        if (rc != 1) {
-                SPDK_ERRLOG("SSL_accept failed%d\n", rc);
-                if (SSL_get_error(ssl, rc) == SSL_ERROR_SSL) {
-                        get_error();
-                }
-
-                goto err_handler;
-        }
-
-        SPDK_ERRLOG("SSL_accept succeeded\n");
-        SPDK_ERRLOG("Negotiated Cipher suite:%s\n", SSL_CIPHER_get_name(SSL_get_current_cipher(ssl)));
-#endif
-	flag = fcntl(fd, F_GETFL);
-	if ((!(flag & O_NONBLOCK)) && (fcntl(fd, F_SETFL, flag | O_NONBLOCK) < 0)) {
-		SPDK_ERRLOG("fcntl can't set nonblocking mode for socket, fd: %d (%d)\n", fd, errno);
-		close(fd);
-		return NULL;
-	}
 
 #if defined(SO_PRIORITY)
 	/* The priority is not inherited, so call this function again */
@@ -889,6 +908,63 @@ posix_sock_accept(struct spdk_sock *_sock)
 	}
 
 #ifdef TLS
+        SSL* ssl = create_ssl_object_server(sock->ctx, fd);
+        ericf("%p = create_ssl_object_server(%p, %d)\n", ssl, sock->ctx, fd);
+        if (!ssl) {
+                goto err_handler;
+        }
+
+        SPDK_ERRLOG("%s = SSL_state_string_long(%p)\n", SSL_state_string_long(ssl), ssl);
+retry:
+        rc = SSL_accept(ssl);
+        SPDK_ERRLOG("%s = SSL_state_string_long(%p)\n", SSL_state_string_long(ssl), ssl);
+        if (rc != 1) {
+                int ssl_get_error = SSL_get_error(ssl, rc);
+                SPDK_ERRLOG("SSL_accept failed %d = SSL_accept(%p), %d = SSL_get_error(%p, %d)\n", rc, ssl, ssl_get_error, ssl, rc);
+                if (ssl_get_error == SSL_ERROR_SSL) {
+                        get_error();
+                }
+else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+ericf("SSL_ERROR_WANT_READ\n");
+goto retry;
+}
+else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
+ericf("SSL_ERROR_WANT_WRITE\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
+ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
+}
+else if (ssl_get_error == SSL_ERROR_SYSCALL) {
+ericf("SSL_ERROR_SYSCALL\n");
+}
+else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
+ericf("SSL_ERROR_ZERO_RETURN\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CONNECT) {
+ericf("SSL_ERROR_WANT_CONNECT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ACCEPT) {
+ericf("SSL_ERROR_WANT_ACCEPT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC) {
+ericf("SSL_ERROR_WANT_ASYNC\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC_JOB) {
+ericf("SSL_ERROR_WANT_ASYNC_JOB\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
+ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
+}
+
+                goto err_handler;
+        }
+
+        SPDK_ERRLOG("SSL_accept succeeded\n");
+        SPDK_ERRLOG("Negotiated Cipher suite:%s\n", SSL_CIPHER_get_name(SSL_get_current_cipher(ssl)));
+#endif
+
+#ifdef TLS
+        new_sock->ctx = sock->ctx;
         new_sock->ssl = ssl;
 #endif
 
@@ -995,6 +1071,64 @@ _sock_check_zcopy(struct spdk_sock *sock)
 }
 #endif
 
+#ifdef TLS
+static int
+SSL_writev(SSL *ssl, const struct iovec *iov, int iovcnt)
+{
+    int i;
+    int n;
+    int rc = 0;
+
+    for (i = 0; i < iovcnt; i++) {
+        if ((n = SSL_write(ssl, iov[i].iov_base, iov[i].iov_len)) == -1) {
+            const int ssl_get_error = SSL_get_error(ssl, n);
+                           if (ssl_get_error == SSL_ERROR_SSL) {
+                             get_error();
+                           }
+else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+ericf("SSL_ERROR_WANT_READ\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
+ericf("SSL_ERROR_WANT_WRITE\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
+ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
+}
+else if (ssl_get_error == SSL_ERROR_SYSCALL) {
+ericf("SSL_ERROR_SYSCALL\n");
+}
+else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
+ericf("SSL_ERROR_ZERO_RETURN\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CONNECT) {
+ericf("SSL_ERROR_WANT_CONNECT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ACCEPT) {
+ericf("SSL_ERROR_WANT_ACCEPT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC) {
+ericf("SSL_ERROR_WANT_ASYNC\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC_JOB) {
+ericf("SSL_ERROR_WANT_ASYNC_JOB\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
+ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
+}
+        }
+
+        ericf("succeeded writing %d\n", i);
+        rc += n;
+    }
+
+    if (rc) {
+    return rc;
+}
+
+  return -1;
+}
+#endif
+
 static int
 _sock_flush(struct spdk_sock *sock)
 {
@@ -1032,7 +1166,13 @@ _sock_flush(struct spdk_sock *sock)
 	{
 		flags = 0;
 	}
-	rc = sendmsg(psock->fd, &msg, flags);
+
+#ifdef TLS
+	rc = SSL_writev(psock->ssl, iovs, iovcnt);
+#else
+        rc = sendmsg(psock->fd, &msg, flags);
+#endif
+
 	if (rc <= 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || (errno == ENOBUFS && psock->zcopy)) {
 			return 0;
@@ -1160,13 +1300,10 @@ posix_sock_recv_from_pipe(struct spdk_posix_sock *sock, struct iovec *diov, int 
 static int
 SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
 {
-  int res, err;
-  unsigned long serr; // NOLINT(runtime/int)
-  const char *file;
-  int line;
+  int res;
   uint64_t total_read = 0;
 
-  for (int i = 0; i < iovcnt; i++) {
+  for (int i = 0; i < iovcnt; ++i) {
     if (iov[i].iov_len == 0) {
       continue;
     }
@@ -1177,28 +1314,48 @@ SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
       total_read += res;
       continue;
     }
-    err = SSL_get_error(ssl, res);
+    int ssl_get_error = SSL_get_error(ssl, res);
+                           if (ssl_get_error == SSL_ERROR_SSL) {
+                             get_error();
+                           }
+else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+ericf("SSL_ERROR_WANT_READ\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
+ericf("SSL_ERROR_WANT_WRITE\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
+ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
+}
+else if (ssl_get_error == SSL_ERROR_SYSCALL) {
+ericf("SSL_ERROR_SYSCALL\n");
+}
+else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
+ericf("SSL_ERROR_ZERO_RETURN\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CONNECT) {
+ericf("SSL_ERROR_WANT_CONNECT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ACCEPT) {
+ericf("SSL_ERROR_WANT_ACCEPT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC) {
+ericf("SSL_ERROR_WANT_ASYNC\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC_JOB) {
+ericf("SSL_ERROR_WANT_ASYNC_JOB\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
+ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
+}
+}
 
-    switch (err) {
-      case SSL_ERROR_WANT_READ:
-        ericf("SSL_ERROR_WANT_READ\n");
-        break;
 
-      case SSL_ERROR_WANT_WRITE:
-        ericf("SSL_ERROR_WANT_WRITE\n");
-        break;
-
-      default:
-        while ((serr = ERR_get_error_line(&file, &line)) != 0) {
-          char ebuf[128];
-          ERR_error_string_n(serr, ebuf, sizeof(ebuf));
-          ericf("SSL err: %s:%d %lu %s\n", file, line, serr, ebuf);
-        }
-    }
-    break;
+  if (total_read) {
+    return total_read;
   }
 
-  return total_read;
+  return -1;
 }
 #endif
 
@@ -1257,9 +1414,9 @@ ericf("sock->recv_pipe == NULL, %p = group, %d = sock->pending_events\n", group,
 			TAILQ_REMOVE(&group->pending_events, sock, link);
 		}
 #ifdef TLS
-ericf("SSL_readv(%p, %p, %d)\n", sock->ssl, iov, iovcnt);
                 ssize_t r = SSL_readv(sock->ssl, iov, iovcnt);
-ericf("%ld\n", r);
+ericf("fd = %d, %ld = SSL_readv(%p, %p, %d)\n", sock->fd, r, sock->ssl, iov, iovcnt);
+                return r;
 #else
 ericf("readv1\n");
                         ssize_t r = readv(sock->fd, iov, iovcnt);
@@ -1268,7 +1425,6 @@ for (int i = 0; i < iovcnt; ++i) {
   ericf("data %d: %.*s\n", i, (int)iov[i].iov_len, (char*)iov[i].iov_base);
 }
 
-                        exit(0);
                         return r;
 
 #endif
@@ -1319,35 +1475,6 @@ posix_sock_recv(struct spdk_sock *sock, void *buf, size_t len)
 
 	return posix_sock_readv(sock, iov, 1);
 }
-
-#ifdef TLS
-static int
-SSL_writev(SSL *ssl, const struct iovec *iov, int iovcnt)
-{
-    int i;
-    int n;
-    int rc = 0;
-
-    for (i = 0; i < iovcnt; i++) {
-        if ((n = SSL_write(ssl, iov[i].iov_base, iov[i].iov_len)) == -1) {
-            rc = n;
-            const int ssl_get_error = SSL_get_error(ssl, n);
-            ericf("failed writing, %d = SSL_write(%p, %p, %lu), %d = SSL_get_error(%p, %d), %d = errno\n", n, ssl, iov[i].iov_base, iov[i].iov_len, ssl_get_error, ssl, n, errno);
-            if (ssl_get_error == SSL_ERROR_SSL) {
-                    get_error();
-            }
-      
-
-            break;
-        }
-
-        ericf("succeeded writing %d\n", i);
-        rc += n;
-    }
-
-    return rc;
-}
-#endif
 
 static ssize_t
 posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)

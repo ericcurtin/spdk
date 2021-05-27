@@ -151,9 +151,9 @@ spdk_vlog(enum spdk_log_level level, const char *file, const int line, const cha
 	if (level <= g_spdk_log_print_level) {
 		get_timestamp_prefix(timestamp, sizeof(timestamp));
 		if (file) {
-			fprintf(stderr, "%s%s:%4d:%s: *%s*: %s", timestamp, file, line, func, spdk_level_names[level], buf);
+			fprintf(stderr, "%s[PID:%d] %s:%4d:%s: *%s*: %s", timestamp, getpid(), file, line, func, spdk_level_names[level], buf);
 		} else {
-			fprintf(stderr, "%s%s", timestamp, buf);
+			fprintf(stderr, "%s[PID:%d] %s", timestamp, getpid(), buf);
 		}
 	}
 
