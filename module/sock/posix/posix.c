@@ -1073,6 +1073,7 @@ _sock_check_zcopy(struct spdk_sock *sock)
 #endif
 
 #ifdef TLS
+#if 0
 static int
 SSL_writev(SSL *ssl, const struct iovec *iov, int iovcnt)
 {
@@ -1118,7 +1119,7 @@ ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 }
         }
 
-        ericf("succeeded writing %d\n", i);
+//        ericf("succeeded writing %d\n", i);
         rc += n;
     }
 
@@ -1128,6 +1129,45 @@ ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 
   return -1;
 }
+#endif
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+static ssize_t SSL_writev (SSL *ssl, const struct iovec *vector, int count)
+{
+  /* Find the total number of bytes to be written.  */
+  size_t bytes = 0;
+  for (int i = 0; i < count; ++i)
+    {
+      /* Check for ssize_t overflow.  */
+      if (SSIZE_MAX - bytes < vector[i].iov_len)
+	{
+	  return -1;
+	}
+      bytes += vector[i].iov_len;
+    }
+
+  char *buffer = (char *) alloca (bytes);
+
+  /* Copy the data into BUFFER.  */
+  size_t to_copy = bytes;
+  char *bp = buffer;
+  for (int i = 0; i < count; ++i)
+    {
+      size_t copy = MIN (vector[i].iov_len, to_copy);
+
+      bp = mempcpy ((void *) bp, (void *) vector[i].iov_base, copy);
+
+      to_copy -= copy;
+      if (to_copy == 0)
+	break;
+    }
+
+  ssize_t bytes_written = SSL_write(ssl, buffer, bytes);
+
+  return bytes_written;
+}
+
 #endif
 
 static int
@@ -1301,10 +1341,8 @@ posix_sock_recv_from_pipe(struct spdk_posix_sock *sock, struct iovec *diov, int 
 }
 
 #ifdef TLS
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-
-static int
-SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
+#if 0
+static int SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
 {
   int res;
   uint64_t total_read = 0;
@@ -1327,6 +1365,7 @@ SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
                            }
 else if (ssl_get_error == SSL_ERROR_WANT_READ) {
 ericf("SSL_ERROR_WANT_READ\n");
+break;
 //goto retry;
 }
 else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
@@ -1367,10 +1406,48 @@ ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 }
 #endif
 
+static ssize_t SSL_readv(SSL* ssl, const struct iovec *vector, int count) {
+  /* Find the total number of bytes to be read.  */
+  size_t bytes = 0;
+  for (int i = 0; i < count; ++i)
+    {
+      /* Check for ssize_t overflow.  */
+      if (SSIZE_MAX - bytes < vector[i].iov_len)
+	{
+//	  __set_errno (EINVAL);
+	  return -1;
+	}
+      bytes += vector[i].iov_len;
+    }
+
+  char *buffer = (char *) alloca (bytes);
+
+  ssize_t bytes_read = SSL_read(ssl, buffer, bytes);
+  if (bytes_read < 0)
+    return -1;
+
+  bytes = bytes_read;
+  for (int i = 0; i < count; ++i)
+    {
+      size_t copy = MIN (vector[i].iov_len, bytes);
+
+      (void) memcpy ((void *) vector[i].iov_base, (void *) buffer, copy);
+
+      buffer += copy;
+      bytes -= copy;
+      if (bytes == 0)
+	break;
+    }
+
+  return bytes_read;
+}
+
+#endif
+
 static inline ssize_t
 posix_sock_read(struct spdk_posix_sock *sock)
 {
-        ericf("posix_sock_read\n");
+//        ericf("posix_sock_read\n");
 	struct iovec iov[2];
 	int bytes;
 	struct spdk_posix_sock_group_impl *group;
@@ -1409,7 +1486,7 @@ posix_sock_read(struct spdk_posix_sock *sock)
 static ssize_t
 posix_sock_readv(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 {
-        ericf("posix_sock_readv\n");
+//        ericf("posix_sock_readv\n");
 	struct spdk_posix_sock *sock = __posix_sock(_sock);
 	struct spdk_posix_sock_group_impl *group = __posix_group_impl(sock->base.group_impl);
 	int rc, i;
@@ -1452,12 +1529,12 @@ for (int i = 0; i < iovcnt; ++i) {
 				TAILQ_REMOVE(&group->pending_events, sock, link);
 			}
 #ifdef TLS
-ericf("SSL_readv2\n");
+//ericf("SSL_readv2\n");
                 return SSL_readv(sock->ssl, iov, iovcnt);
 #else
-ericf("readv2\n");
+//ericf("readv2\n");
 			ssize_t r = readv(sock->fd, iov, iovcnt);
-                        ericf("%ld\n", r);
+//                        ericf("%ld\n", r);
                         return r;
 #endif
 		}
@@ -1475,7 +1552,7 @@ ericf("readv2\n");
 static ssize_t
 posix_sock_recv(struct spdk_sock *sock, void *buf, size_t len)
 {
-        ericf("posix_sock_recv\n");
+//        ericf("posix_sock_recv(\n");
 	struct iovec iov[1];
 
 	iov[0].iov_base = buf;
@@ -1514,7 +1591,7 @@ posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 static void
 posix_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 {
-        ericf("\n");
+//        ericf("\n");
 	int rc;
 
 	spdk_sock_request_queue(sock, req);

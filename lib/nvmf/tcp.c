@@ -1491,7 +1491,7 @@ nvmf_tcp_send_capsule_resp_pdu(struct spdk_nvmf_tcp_req *tcp_req,
 	struct nvme_tcp_pdu *rsp_pdu;
 	struct spdk_nvme_tcp_rsp *capsule_resp;
 
-	SPDK_ERRLOG("enter, set SPDK_NVME_TCP_PDU_TYPE_CAPSULE_RESP tqpair=%p\n", tqpair);
+//	SPDK_ERRLOG("enter, set SPDK_NVME_TCP_PDU_TYPE_CAPSULE_RESP tqpair=%p\n", tqpair);
 
 	rsp_pdu = nvmf_tcp_req_pdu_init(tcp_req);
 	assert(rsp_pdu != NULL);
@@ -1780,7 +1780,7 @@ static void
 nvmf_tcp_pdu_psh_handle(struct spdk_nvmf_tcp_qpair *tqpair,
 			struct spdk_nvmf_tcp_transport *ttransport)
 {
-        ericf("\n");
+//        ericf("\n");
 	struct nvme_tcp_pdu *pdu;
 	int rc;
 	uint32_t crc32c, error_offset = 0;
@@ -1832,7 +1832,7 @@ nvmf_tcp_pdu_psh_handle(struct spdk_nvmf_tcp_qpair *tqpair,
 static void
 nvmf_tcp_pdu_ch_handle(struct spdk_nvmf_tcp_qpair *tqpair)
 {
-        ericf("\n");
+//        ericf("\n");
 	struct nvme_tcp_pdu *pdu;
 	uint32_t error_offset = 0;
 	enum spdk_nvme_tcp_term_req_fes fes;
@@ -1915,7 +1915,7 @@ nvmf_tcp_pdu_ch_handle(struct spdk_nvmf_tcp_qpair *tqpair)
 		error_offset = offsetof(struct spdk_nvme_tcp_common_pdu_hdr, plen);
 		goto err;
 	} else {
-                ericf("Set NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_PSH\n");
+//                ericf("Set NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_PSH\n");
 		nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_PSH);
 		nvme_tcp_pdu_calc_psh_len(&tqpair->pdu_in_progress, tqpair->host_hdgst_enable);
 		return;
@@ -1973,7 +1973,7 @@ nvmf_tcp_sock_process(struct spdk_nvmf_tcp_qpair *tqpair)
 				pdu->ch_valid_bytes += rc;
 				spdk_trace_record(TRACE_TCP_READ_FROM_SOCKET_DONE, 0, rc, 0, 0);
 				if (spdk_likely(tqpair->recv_state == NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_READY)) {
-                                        ericf("Set NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH\n");
+//                                        ericf("Set NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH\n");
 					nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH);
 				}
 			}

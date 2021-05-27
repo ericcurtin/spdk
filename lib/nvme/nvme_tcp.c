@@ -887,7 +887,7 @@ nvme_tcp_pdu_ch_handle(struct nvme_tcp_qpair *tqpair)
 
 	pdu = &tqpair->recv_pdu;
 
-	SPDK_ERRLOG("pdu type=%d\n", pdu->hdr.common.pdu_type);
+//	SPDK_ERRLOG("pdu type=%d\n", pdu->hdr.common.pdu_type);
 	if (pdu->hdr.common.pdu_type == SPDK_NVME_TCP_PDU_TYPE_IC_RESP) {
 		if (tqpair->state != NVME_TCP_QPAIR_STATE_INVALID) {
 			SPDK_ERRLOG("Already received IC_RESP PDU, and we should reject this pdu=%p\n", pdu);
@@ -905,7 +905,7 @@ nvme_tcp_pdu_ch_handle(struct nvme_tcp_qpair *tqpair)
 			goto err;
 		}
 
-                ericf("switch (%d)\n", pdu->hdr.common.pdu_type);
+//                ericf("switch (%d)\n", pdu->hdr.common.pdu_type);
 		switch (pdu->hdr.common.pdu_type) {
 		case SPDK_NVME_TCP_PDU_TYPE_CAPSULE_RESP:
 			expected_hlen = sizeof(struct spdk_nvme_tcp_rsp);
@@ -1539,7 +1539,7 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 		switch (tqpair->recv_state) {
 		/* If in a new state */
 		case NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_READY:
-                        ericf("Set NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH\n");
+//                        ericf("Set NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH\n");
 			nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH);
 			break;
 		/* common header */
@@ -1549,9 +1549,9 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 				rc = nvme_tcp_read_data(tqpair->sock,
 							sizeof(struct spdk_nvme_tcp_common_pdu_hdr) - pdu->ch_valid_bytes,
 							(uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
-ericf("%d = nvme_tcp_read_data(%p, %lu, %p)\n", rc, tqpair->sock, sizeof(struct spdk_nvme_tcp_common_pdu_hdr) - pdu->ch_valid_bytes,
-                    (uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
-ericf("data: '%.*s'\n", rc, (uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
+//ericf("%d = nvme_tcp_read_data(%p, %lu, %p)\n", rc, tqpair->sock, sizeof(struct spdk_nvme_tcp_common_pdu_hdr) - pdu->ch_valid_bytes,
+//                    (uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
+//ericf("data: '%.*s'\n", rc, (uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
 				if (rc < 0) {
 ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 					nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
@@ -1628,14 +1628,14 @@ ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 			assert(0);
 			break;
 		}
- ericf("%d\n", rc);
+// ericf("%d\n", rc);
 	} while (prev_state != tqpair->recv_state);
 
 out:
 	*reaped += tqpair->async_complete;
 	tqpair->async_complete = 0;
 
-        ericf("%d\n", rc);
+//        ericf("%d\n", rc);
 	return rc;
 }
 
@@ -1739,7 +1739,7 @@ fail:
 static void
 nvme_tcp_qpair_sock_cb(void *ctx, struct spdk_sock_group *group, struct spdk_sock *sock)
 {
-        ericf("\n");
+//        ericf("\n");
 	struct spdk_nvme_qpair *qpair = ctx;
 	struct nvme_tcp_poll_group *pgroup = nvme_tcp_poll_group(qpair->poll_group);
 	int32_t num_completions;
@@ -2197,7 +2197,7 @@ static int64_t
 nvme_tcp_poll_group_process_completions(struct spdk_nvme_transport_poll_group *tgroup,
 					uint32_t completions_per_qpair, spdk_nvme_disconnected_qpair_cb disconnected_qpair_cb)
 {
-        ericf("\n");
+//        ericf("\n");
 	struct nvme_tcp_poll_group *group = nvme_tcp_poll_group(tgroup);
 	struct spdk_nvme_qpair *qpair, *tmp_qpair;
 	struct nvme_tcp_qpair *tqpair, *tmp_tqpair;
