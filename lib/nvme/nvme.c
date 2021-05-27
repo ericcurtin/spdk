@@ -282,6 +282,7 @@ nvme_wait_for_completion_robust_lock_timeout(
 	pthread_mutex_t *robust_mutex,
 	uint64_t timeout_in_usecs)
 {
+        SPDK_ERRLOG("timeout_in_usecs: %lu\n", timeout_in_usecs);
 	uint64_t timeout_tsc = 0;
 	int rc = 0;
 

@@ -63,8 +63,10 @@
 #define MAX_TMPBUF 1024
 #define PORTNUMLEN 32
 
+#if 0
 #if defined(SO_ZEROCOPY) && defined(MSG_ZEROCOPY)
 #define SPDK_ZEROCOPY
+#endif
 #endif
 
 #define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
