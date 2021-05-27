@@ -905,6 +905,7 @@ nvme_tcp_pdu_ch_handle(struct nvme_tcp_qpair *tqpair)
 			goto err;
 		}
 
+                ericf("switch (%d)\n", pdu->hdr.common.pdu_type);
 		switch (pdu->hdr.common.pdu_type) {
 		case SPDK_NVME_TCP_PDU_TYPE_CAPSULE_RESP:
 			expected_hlen = sizeof(struct spdk_nvme_tcp_rsp);
@@ -1617,7 +1618,7 @@ ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 			break;
 		case NVME_TCP_PDU_RECV_STATE_ERROR:
 			rc = NVME_TCP_PDU_FATAL;
-                        ericf("%d\n", rc);
+                        ericf("NVME_TCP_PDU_FATAL\n");
 			break;
 		default:
 			assert(0);

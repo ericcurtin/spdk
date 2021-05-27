@@ -1491,7 +1491,7 @@ nvmf_tcp_send_capsule_resp_pdu(struct spdk_nvmf_tcp_req *tcp_req,
 	struct nvme_tcp_pdu *rsp_pdu;
 	struct spdk_nvme_tcp_rsp *capsule_resp;
 
-	SPDK_DEBUGLOG(nvmf_tcp, "enter, tqpair=%p\n", tqpair);
+	SPDK_ERRLOG("enter, set SPDK_NVME_TCP_PDU_TYPE_CAPSULE_RESP tqpair=%p\n", tqpair);
 
 	rsp_pdu = nvmf_tcp_req_pdu_init(tcp_req);
 	assert(rsp_pdu != NULL);

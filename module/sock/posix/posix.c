@@ -554,7 +554,7 @@ static void get_error(void) {
 //  unsigned long error;
 //  const char* file = NULL;
 //  int line = 0;
-SPDK_ERRLOG("");
+SPDK_ERRLOG(" ");
   ERR_print_errors_fp(stderr);
 //  error = ERR_get_error_line(&file, &line);
 //  SPDK_ERRLOG("SSL_ERROR_SSL: Error reason=%d on [%s:%d]\n", ERR_GET_REASON(error), file, line);
@@ -1015,6 +1015,7 @@ _sock_check_zcopy(struct spdk_sock *sock)
 	msgh.msg_controllen = sizeof(buf);
 
 	while (true) {
+                ericf("recvmsg\n");
 		rc = recvmsg(psock->fd, &msgh, MSG_ERRQUEUE);
 
 		if (rc < 0) {
@@ -1133,8 +1134,10 @@ static int
 _sock_flush(struct spdk_sock *sock)
 {
 	struct spdk_posix_sock *psock = __posix_sock(sock);
+#ifndef TLS
 	struct msghdr msg = {};
 	int flags;
+#endif
 	struct iovec iovs[IOV_BATCH_SIZE];
 	int iovcnt;
 	int retval;
@@ -1155,9 +1158,11 @@ _sock_flush(struct spdk_sock *sock)
 		return 0;
 	}
 
+#ifndef TLS
 	/* Perform the vectored write */
 	msg.msg_iov = iovs;
 	msg.msg_iovlen = iovcnt;
+
 #ifdef SPDK_ZEROCOPY
 	if (psock->zcopy) {
 		flags = MSG_ZEROCOPY;
@@ -1166,6 +1171,7 @@ _sock_flush(struct spdk_sock *sock)
 	{
 		flags = 0;
 	}
+#endif
 
 #ifdef TLS
 	rc = SSL_writev(psock->ssl, iovs, iovcnt);
