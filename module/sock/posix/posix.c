@@ -1314,6 +1314,7 @@ SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
       continue;
     }
 
+//retry:
     res = SSL_read(ssl, iov[i].iov_base, iov[i].iov_len);
 
     if (res > 0) {
@@ -1326,6 +1327,7 @@ SSL_readv(SSL *ssl, const struct iovec *iov, int iovcnt)
                            }
 else if (ssl_get_error == SSL_ERROR_WANT_READ) {
 ericf("SSL_ERROR_WANT_READ\n");
+//goto retry;
 }
 else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
 ericf("SSL_ERROR_WANT_WRITE\n");

@@ -1973,6 +1973,7 @@ nvmf_tcp_sock_process(struct spdk_nvmf_tcp_qpair *tqpair)
 				pdu->ch_valid_bytes += rc;
 				spdk_trace_record(TRACE_TCP_READ_FROM_SOCKET_DONE, 0, rc, 0, 0);
 				if (spdk_likely(tqpair->recv_state == NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_READY)) {
+                                        ericf("Set NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH\n");
 					nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH);
 				}
 			}
