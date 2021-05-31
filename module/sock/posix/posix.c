@@ -69,8 +69,6 @@
 #endif
 #endif
 
-#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
-
 struct spdk_posix_sock {
 	struct spdk_sock	base;
 	int			fd;
@@ -552,15 +550,9 @@ static SSL *create_ssl_object_client(SSL_CTX *ctx, int fd) {
         return ssl;
 }
 
-static void get_error(void) {
-//  unsigned long error;
-//  const char* file = NULL;
-//  int line = 0;
-SPDK_ERRLOG(" ");
+#define get_error(void) \
+SPDK_ERRLOG(" "); \
   ERR_print_errors_fp(stderr);
-//  error = ERR_get_error_line(&file, &line);
-//  SPDK_ERRLOG("SSL_ERROR_SSL: Error reason=%d on [%s:%d]\n", ERR_GET_REASON(error), file, line);
-}
 
 static void do_cleanup(SSL_CTX* ctx, SSL* ssl) {
   int fd;
@@ -1165,7 +1157,49 @@ static ssize_t SSL_writev (SSL *ssl, const struct iovec *vector, int count)
 	break;
     }
 
-  ssize_t bytes_written = SSL_write(ssl, buffer, bytes);
+size_t bytes_written;
+//retry:
+  bytes_written = SSL_write(ssl, buffer, bytes);
+  if (bytes_written <= 0) {
+                int ssl_get_error = SSL_get_error(ssl, bytes_written);
+                SPDK_ERRLOG("%ld = SSL_write(%p, '%s', %ld), %d = SSL_get_error(%p, %ld)\n", bytes_written, ssl, buffer, bytes, ssl_get_error, ssl, bytes_written);
+                if (ssl_get_error == SSL_ERROR_SSL) {
+                        get_error();
+                }
+else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+ericf("SSL_ERROR_WANT_READ\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
+ericf("SSL_ERROR_WANT_WRITE\n");
+errno = EAGAIN;
+//goto retry;
+}
+else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
+ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
+}
+else if (ssl_get_error == SSL_ERROR_SYSCALL) {
+ericf("SSL_ERROR_SYSCALL\n");
+}
+else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
+ericf("SSL_ERROR_ZERO_RETURN\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CONNECT) {
+ericf("SSL_ERROR_WANT_CONNECT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ACCEPT) {
+ericf("SSL_ERROR_WANT_ACCEPT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC) {
+ericf("SSL_ERROR_WANT_ASYNC\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC_JOB) {
+ericf("SSL_ERROR_WANT_ASYNC_JOB\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
+ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
+}
+}
+
 
   return bytes_written;
 }
@@ -1219,14 +1253,14 @@ _sock_flush(struct spdk_sock *sock)
 	rc = SSL_writev(psock->ssl, iovs, iovcnt);
 #else
         rc = sendmsg(psock->fd, &msg, flags);
-#endif
-
 	if (rc <= 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || (errno == ENOBUFS && psock->zcopy)) {
 			return 0;
 		}
+
 		return rc;
 	}
+#endif
 
 	/* Handling overflow case, because we use psock->sendmsg_idx - 1 for the
 	 * req->internal.offset, so sendmsg_idx should not be zero  */
@@ -1424,9 +1458,47 @@ static ssize_t SSL_readv(SSL* ssl, const struct iovec *vector, int count) {
 
   char *buffer = (char *) alloca (bytes);
 
-  ssize_t bytes_read = SSL_read(ssl, buffer, bytes);
-  if (bytes_read < 0)
-    return -1;
+  ssize_t bytes_read;
+//retry:
+  bytes_read = SSL_read(ssl, buffer, bytes);
+  if (bytes_read <= 0) {
+                int ssl_get_error = SSL_get_error(ssl, bytes_read);
+                //SPDK_ERRLOG("%ld = SSL_read(%p, '%s', %ld), %d = SSL_get_error(%p, %ld)\n", bytes_read, ssl, buffer, bytes, ssl_get_error, ssl, bytes_read);
+                if (ssl_get_error == SSL_ERROR_SSL) {
+                        get_error();
+                }
+else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+ericf("SSL_ERROR_WANT_READ\n");
+errno = EAGAIN;
+}
+else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
+ericf("SSL_ERROR_WANT_WRITE\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
+ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
+}
+else if (ssl_get_error == SSL_ERROR_SYSCALL) {
+ericf("SSL_ERROR_SYSCALL\n");
+}
+else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
+ericf("SSL_ERROR_ZERO_RETURN\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CONNECT) {
+ericf("SSL_ERROR_WANT_CONNECT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ACCEPT) {
+ericf("SSL_ERROR_WANT_ACCEPT\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC) {
+ericf("SSL_ERROR_WANT_ASYNC\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_ASYNC_JOB) {
+ericf("SSL_ERROR_WANT_ASYNC_JOB\n");
+}
+else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
+ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
+}
+}
 
   bytes = bytes_read;
   for (int i = 0; i < count; ++i)
@@ -1593,13 +1665,13 @@ posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 static void
 posix_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 {
-//        ericf("\n");
 	int rc;
 
 	spdk_sock_request_queue(sock, req);
 
 	/* If there are a sufficient number queued, just flush them out immediately. */
 	if (sock->queued_iovcnt >= IOV_BATCH_SIZE) {
+//                ericf("sock->queued_iovcnt >= IOV_BATCH_SIZE\n");
 		rc = _sock_flush(sock);
 		if (rc) {
 			spdk_sock_abort_requests(sock);

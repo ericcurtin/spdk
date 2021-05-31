@@ -55,8 +55,6 @@
 #define SPDK_NVMF_TCP_DEFAULT_CONTROL_MSG_NUM 32
 #define SPDK_NVMF_TCP_DEFAULT_SUCCESS_OPTIMIZATION true
 
-#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
-
 const struct spdk_nvmf_transport_ops spdk_nvmf_transport_tcp;
 
 /* spdk nvmf related structure */
@@ -820,6 +818,7 @@ _tcp_write_pdu(struct nvme_tcp_pdu *pdu)
 	pdu->sock_req.iovcnt = nvme_tcp_build_iovs(pdu->iov, SPDK_COUNTOF(pdu->iov), pdu,
 			       tqpair->host_hdgst_enable, tqpair->host_ddgst_enable,
 			       &mapped_length);
+//        ericf("set _pdu_write_done function pointer\n");
 	pdu->sock_req.cb_fn = _pdu_write_done;
 	pdu->sock_req.cb_arg = pdu;
 	if (pdu->hdr.common.pdu_type == SPDK_NVME_TCP_PDU_TYPE_IC_RESP ||

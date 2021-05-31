@@ -191,6 +191,7 @@ spdk_sock_abort_requests(struct spdk_sock *sock)
 	while (req) {
 		TAILQ_REMOVE(&sock->pending_reqs, req, internal.link);
 
+                printf("-ECANCELED1\n");
 		req->cb_fn(req->cb_arg, -ECANCELED);
 
 		req = TAILQ_FIRST(&sock->pending_reqs);
@@ -203,6 +204,7 @@ spdk_sock_abort_requests(struct spdk_sock *sock)
 		assert(sock->queued_iovcnt >= req->iovcnt);
 		sock->queued_iovcnt -= req->iovcnt;
 
+                printf("-ECANCELED2\n");
 		req->cb_fn(req->cb_arg, -ECANCELED);
 
 		req = TAILQ_FIRST(&sock->queued_reqs);

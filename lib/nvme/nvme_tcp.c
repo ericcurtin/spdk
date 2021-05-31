@@ -58,8 +58,6 @@
 #define NVME_TCP_MAX_R2T_DEFAULT		1
 #define NVME_TCP_PDU_H2C_MIN_DATA_SIZE		4096
 
-#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
-
 /* NVMe TCP transport extensions for spdk_nvme_ctrlr */
 struct nvme_tcp_ctrlr {
 	struct spdk_nvme_ctrlr			ctrlr;
@@ -342,6 +340,7 @@ nvme_tcp_ctrlr_delete_io_qpair(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_q
 	struct nvme_tcp_qpair *tqpair;
 
 	assert(qpair != NULL);
+        ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
 	nvme_transport_ctrlr_disconnect_qpair(ctrlr, qpair);
 	nvme_tcp_qpair_abort_reqs(qpair, 1);
 	nvme_qpair_deinit(qpair);
@@ -395,6 +394,8 @@ _pdu_write_done(void *cb_arg, int err)
 	TAILQ_REMOVE(&tqpair->send_queue, pdu, tailq);
 
 	if (err != 0) {
+//                print_trace();
+                ericf("call nvme_transport_ctrlr_disconnect_qpair err=%d\n", err);
 		nvme_transport_ctrlr_disconnect_qpair(tqpair->qpair.ctrlr, &tqpair->qpair);
 		return;
 	}
@@ -412,6 +413,7 @@ _tcp_write_pdu(struct nvme_tcp_pdu *pdu)
 	pdu->sock_req.iovcnt = nvme_tcp_build_iovs(pdu->iov, NVME_TCP_MAX_SGL_DESCRIPTORS, pdu,
 			       (bool)tqpair->flags.host_hdgst_enable, (bool)tqpair->flags.host_ddgst_enable,
 			       &mapped_length);
+//        ericf("set _pdu_write_done function pointer\n");
 	pdu->sock_req.cb_fn = _pdu_write_done;
 	pdu->sock_req.cb_arg = pdu;
 	TAILQ_INSERT_TAIL(&tqpair->send_queue, pdu, tailq);
@@ -793,10 +795,12 @@ nvme_tcp_req_complete(struct nvme_tcp_req *tcp_req,
 static void
 nvme_tcp_qpair_abort_reqs(struct spdk_nvme_qpair *qpair, uint32_t dnr)
 {
+        SPDK_ERRLOG("%p, %d\n", qpair, dnr);
 	struct nvme_tcp_req *tcp_req, *tmp;
 	struct spdk_nvme_cpl cpl;
 	struct nvme_tcp_qpair *tqpair = nvme_tcp_qpair(qpair);
 
+        SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
 	cpl.status.sc = SPDK_NVME_SC_ABORTED_SQ_DELETION;
 	cpl.status.sct = SPDK_NVME_SCT_GENERIC;
 	cpl.status.dnr = dnr;
@@ -1729,6 +1733,7 @@ fail:
 	qpair->transport_failure_reason = SPDK_NVME_QPAIR_FAILURE_UNKNOWN;
 
 	if (nvme_qpair_is_admin_queue(qpair)) {
+                ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
 		nvme_transport_ctrlr_disconnect_qpair(qpair->ctrlr, qpair);
 	} else {
 		nvme_ctrlr_disconnect_qpair(qpair);
@@ -2083,6 +2088,7 @@ nvme_tcp_admin_qpair_abort_aers(struct spdk_nvme_qpair *qpair)
 	struct spdk_nvme_cpl cpl;
 	struct nvme_tcp_qpair *tqpair = nvme_tcp_qpair(qpair);
 
+        SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
 	cpl.status.sc = SPDK_NVME_SC_ABORTED_SQ_DELETION;
 	cpl.status.sct = SPDK_NVME_SCT_GENERIC;
 

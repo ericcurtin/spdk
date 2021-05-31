@@ -184,6 +184,8 @@ spdk_sn32_gt(uint32_t s1, uint32_t s2)
 		(s1 > s2 && s1 - s2 < SPDK_SN32_CMPMAX));
 }
 
+#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
+
 /* Obtain a backtrace and print it to @code{stdout}. */
 #define print_trace(x) \
 do { \
@@ -200,6 +202,7 @@ do { \
       printf ("%s\n", strings[i]); \
   } \
 \
+  printf("\n"); \
   free (strings); \
 } while(0)
 

@@ -620,6 +620,7 @@ nvme_qpair_check_enabled(struct spdk_nvme_qpair *qpair)
 		 * here.
 		 */
 		if (qpair->ctrlr->trid.trtype == SPDK_NVME_TRANSPORT_PCIE) {
+                        ericf("call nvme_qpair_abort_reqs\n");
 			nvme_qpair_abort_reqs(qpair, 0);
 		}
 		nvme_qpair_set_state(qpair, NVME_QPAIR_ENABLED);

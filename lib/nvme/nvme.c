@@ -308,6 +308,7 @@ nvme_wait_for_completion_robust_lock_timeout(
 
 		if (rc < 0) {
 			status->cpl.status.sct = SPDK_NVME_SCT_GENERIC;
+                        SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
 			status->cpl.status.sc = SPDK_NVME_SC_ABORTED_SQ_DELETION;
 			break;
 		}
@@ -330,6 +331,7 @@ nvme_wait_for_completion_robust_lock_timeout(
 	}
 
 	if (rc < 0) {
+                ericf("return -ECANCELED;\n");
 		return -ECANCELED;
 	}
 
