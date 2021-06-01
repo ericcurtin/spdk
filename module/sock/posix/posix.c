@@ -1141,7 +1141,7 @@ static ssize_t SSL_writev (SSL *ssl, const struct iovec *vector, int count)
       bytes += vector[i].iov_len;
     }
 
-  char *buffer = (char *) alloca (bytes);
+  char *buffer = (char *) alloca(bytes);
 
   /* Copy the data into BUFFER.  */
   size_t to_copy = bytes;
@@ -1199,7 +1199,6 @@ else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
 ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 }
 }
-
 
   return bytes_written;
 }
@@ -1463,7 +1462,7 @@ static ssize_t SSL_readv(SSL* ssl, const struct iovec *vector, int count) {
   bytes_read = SSL_read(ssl, buffer, bytes);
   if (bytes_read <= 0) {
                 int ssl_get_error = SSL_get_error(ssl, bytes_read);
-                //SPDK_ERRLOG("%ld = SSL_read(%p, '%s', %ld), %d = SSL_get_error(%p, %ld)\n", bytes_read, ssl, buffer, bytes, ssl_get_error, ssl, bytes_read);
+                SPDK_ERRLOG("%ld = SSL_read(%p, '', %ld), %d = SSL_get_error(%p, %ld)\n", bytes_read, ssl, /*buffer,*/ bytes, ssl_get_error, ssl, bytes_read);
                 if (ssl_get_error == SSL_ERROR_SSL) {
                         get_error();
                 }
