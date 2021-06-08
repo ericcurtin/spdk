@@ -1532,6 +1532,7 @@ nvme_tcp_pdu_psh_handle(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 static int
 nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 {
+        ericf("\n");
 	int rc = 0;
 	struct nvme_tcp_pdu *pdu;
 	uint32_t data_len;
@@ -1980,6 +1981,7 @@ static struct spdk_nvme_ctrlr *nvme_tcp_ctrlr_construct(const struct spdk_nvme_t
 		const struct spdk_nvme_ctrlr_opts *opts,
 		void *devhandle)
 {
+        ericf("\n");
 	struct nvme_tcp_ctrlr *tctrlr;
 	union spdk_nvme_cap_register cap;
 	union spdk_nvme_vs_register vs;

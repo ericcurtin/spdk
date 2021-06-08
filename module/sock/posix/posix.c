@@ -1481,6 +1481,7 @@ if (ssl_get_error == SSL_ERROR_SSL) {
                         get_error();
                 }
 else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+print_trace();
 ericf("SSL_ERROR_WANT_READ\n");
 errno = EAGAIN;
 sock->ssl_wanted = SSL_ERROR_WANT_READ;
