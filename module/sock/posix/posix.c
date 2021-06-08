@@ -1644,7 +1644,7 @@ for (int i = 0; i < iovcnt; ++i) {
 static ssize_t
 posix_sock_recv(struct spdk_sock *sock, void *buf, size_t len)
 {
-//        ericf("posix_sock_recv(\n");
+        ericf("\n");
 	struct iovec iov[1];
 
 	iov[0].iov_base = buf;
