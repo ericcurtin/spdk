@@ -1592,7 +1592,7 @@ ericf("sock->recv_pipe == NULL, %p = group, %d = sock->pending_events\n", group,
 		}
 #ifdef TLS
                 ssize_t r = SSL_readv(sock, iov, iovcnt);
-ericf("fd = %d, %ld = SSL_readv(%p, %p, %d)\n", sock->fd, r, sock->ssl, iov, iovcnt);
+ericf("fd = %d, %ld = SSL_readv1(%p, %p, %d)\n", sock->fd, r, sock->ssl, iov, iovcnt);
                 return r;
 #else
 ericf("readv1\n");
@@ -1621,10 +1621,10 @@ for (int i = 0; i < iovcnt; ++i) {
 				TAILQ_REMOVE(&group->pending_events, sock, link);
 			}
 #ifdef TLS
-//ericf("SSL_readv2\n");
+                ericf("SSL_readv2\n");
                 return SSL_readv(sock, iov, iovcnt);
 #else
-//ericf("readv2\n");
+                        ericf("readv2\n");
 			ssize_t r = readv(sock->fd, iov, iovcnt);
 //                        ericf("%ld\n", r);
                         return r;
