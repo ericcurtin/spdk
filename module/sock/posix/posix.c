@@ -1578,7 +1578,7 @@ posix_sock_read(struct spdk_posix_sock *sock)
 static ssize_t
 posix_sock_readv(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 {
-//        ericf("posix_sock_readv\n");
+        ericf("posix_sock_readv\n");
 	struct spdk_posix_sock *sock = __posix_sock(_sock);
 	struct spdk_posix_sock_group_impl *group = __posix_group_impl(sock->base.group_impl);
 	int rc, i;
