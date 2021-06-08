@@ -331,7 +331,7 @@ nvme_wait_for_completion_robust_lock_timeout(
 	}
 
 	if (rc < 0) {
-                ericf("return -ECANCELED;\n");
+                ericf("rc: %d return -ECANCELED;\n", rc);
 		return -ECANCELED;
 	}
 

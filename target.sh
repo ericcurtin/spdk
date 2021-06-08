@@ -25,5 +25,5 @@ mkdir -p /dev/hugepages
 mountpoint -q /dev/hugepages || mount -t hugetlbfs nodev /dev/hugepages
 sudo /bin/bash -c "echo 1024 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
 #sudo /usr/bin/catchsegv build/bin/nvmf_tgt -m 0xf 2>&1 
-sudo build/bin/nvmf_tgt -m 0xf 2>&1 
+sudo /bin/bash -c "export LD_LIBRARY_PATH=/usr/local/lib/ && build/bin/nvmf_tgt -m 0xf 2>&1 "
 

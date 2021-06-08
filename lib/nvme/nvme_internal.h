@@ -199,7 +199,7 @@ extern pid_t g_spdk_nvme_pid;
 #define NVME_FABRIC_CONNECT_COMMAND_TIMEOUT 0
 #else
 /* 500 millisecond timeout. */
-#define NVME_FABRIC_CONNECT_COMMAND_TIMEOUT 500000
+#define NVME_FABRIC_CONNECT_COMMAND_TIMEOUT 5000000
 #endif
 
 /* This value indicates that a read from a PCIe register is invalid. This can happen when a device is no longer present */
