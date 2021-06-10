@@ -6,6 +6,8 @@
 
 sudo pkill -f nvmf_tgt
 sudo pkill -f perf
+sudo pkill -f nvmf_tgt
+sudo pkill -f perf
 
 ./target.sh "$1" > log.log 2>&1 &
 
@@ -17,7 +19,7 @@ sleep 4
 
 ./host.sh >> log.log 2>&1 &
 
-sleep 4
+sleep 8
 
 sudo pkill -f nvmf_tgt
 sudo pkill -f perf
@@ -25,6 +27,6 @@ sudo pkill -f perf
 target_pid="$(grep PID log.log | grep -m1 "Total cores available" | cut -d"[" -f3 | cut -d"]" -f1)"
 host_pid="$(grep PID log.log | grep -m1 "nvme_tcp.c:1985:nvme_tcp_ctrlr_construct:" | cut -d"[" -f3 | cut -d"]" -f1)"
 
-sed -i "s/$target_pid/target/g" log.log
+sed -i "s/$target_pid/targ/g" log.log
 sed -i "s/$host_pid/host/g" log.log
 

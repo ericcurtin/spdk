@@ -35,6 +35,8 @@
 
 #include "spdk/log.h"
 
+#include <sys/types.h>
+
 static const char *const spdk_level_names[] = {
 	[SPDK_LOG_ERROR]	= "ERROR",
 	[SPDK_LOG_WARN]		= "WARNING",
@@ -151,9 +153,9 @@ spdk_vlog(enum spdk_log_level level, const char *file, const int line, const cha
 	if (level <= g_spdk_log_print_level) {
 		get_timestamp_prefix(timestamp, sizeof(timestamp));
 		if (file) {
-			fprintf(stderr, "%s[PID:%d] %s:%4d:%s: *%s*: %s", timestamp, getpid(), file, line, func, spdk_level_names[level], buf);
+			fprintf(stderr, "%s[PID:%d] [TID:%d] %s:%4d:%s: *%s*: %s", timestamp, getpid(), gettid(), file, line, func, spdk_level_names[level], buf);
 		} else {
-			fprintf(stderr, "%s[PID:%d] %s", timestamp, getpid(), buf);
+			fprintf(stderr, "%s[PID:%d] [TID:%d] %s", timestamp, getpid(), gettid(), buf);
 		}
 	}
 

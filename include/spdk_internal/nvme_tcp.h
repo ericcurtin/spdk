@@ -491,7 +491,7 @@ nvme_tcp_read_data(struct spdk_sock *sock, int bytes,
 	}
 
 	/* connection closed */
-        SPDK_ERRLOG("NVME_TCP_CONNECTION_FATAL");
+        SPDK_ERRLOG("NVME_TCP_CONNECTION_FATAL: ret = %d, errno = %d\n", ret, errno);
 	return NVME_TCP_CONNECTION_FATAL;
 }
 

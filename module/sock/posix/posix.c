@@ -553,7 +553,8 @@ static SSL *create_ssl_object_client(SSL_CTX *ctx, int fd) {
 
 #define get_error(void) \
 SPDK_ERRLOG(" "); \
-  ERR_print_errors_fp(stderr);
+  ERR_print_errors_fp(stderr); \
+  fprintf(stderr, "\n");
 
 static void do_cleanup(SSL_CTX* ctx, SSL* ssl) {
   int fd;
@@ -1130,9 +1131,10 @@ ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 
 static ssize_t SSL_writev (struct spdk_posix_sock *sock, const struct iovec *vector, int count)
 {
-  if (sock->ssl_wanted && sock->ssl_wanted != SSL_ERROR_WANT_WRITE) {
-    return -1;
-  }
+//  if (sock->ssl_wanted && sock->ssl_wanted != SSL_ERROR_WANT_WRITE) {
+//    ericf("sock->ssl_wanted: %d\n", sock->ssl_wanted);
+//    return -1;
+//  }
 
   /* Find the total number of bytes to be written.  */
   size_t bytes = 0;
@@ -1455,6 +1457,7 @@ ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 
 static ssize_t SSL_readv(struct spdk_posix_sock *sock, const struct iovec *vector, int count) {
   if (sock->ssl_wanted && sock->ssl_wanted != SSL_ERROR_WANT_READ) {
+    ericf("ssl_wanted: %d\n", sock->ssl_wanted);
     return -1;
   }
 
@@ -1466,6 +1469,7 @@ static ssize_t SSL_readv(struct spdk_posix_sock *sock, const struct iovec *vecto
       if (SSIZE_MAX - bytes < vector[i].iov_len)
 	{
 //	  __set_errno (EINVAL);
+          ericf("EINVAL\n");
 	  return -1;
 	}
       bytes += vector[i].iov_len;
