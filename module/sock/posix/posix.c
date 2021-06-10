@@ -1,4 +1,4 @@
-/*-
+/*i
  *   BSD LICENSE
  *
  *   Copyright (c) Intel Corporation. All rights reserved.
@@ -1165,7 +1165,7 @@ static ssize_t SSL_writev (struct spdk_posix_sock *sock, const struct iovec *vec
 size_t bytes_written;
 //retry:
   bytes_written = SSL_write(sock->ssl, buffer, bytes);
-  SPDK_ERRLOG("%ld = SSL_write(%p, '%s', %ld)\n", bytes_written, sock->ssl, buffer, bytes);
+//  SPDK_ERRLOG("%ld = SSL_write(%p, '%s', %ld)\n", bytes_written, sock->ssl, buffer, bytes);
   if (bytes_written <= 0) {
                 int ssl_get_error = SSL_get_error(sock->ssl, bytes_written);
                 SPDK_ERRLOG("%d = SSL_get_error(%p, %ld)\n", ssl_get_error, sock->ssl, bytes_written);
@@ -1260,8 +1260,10 @@ _sock_flush(struct spdk_sock *sock)
 
 #ifdef TLS
 	rc = SSL_writev(psock, iovs, iovcnt);
+        ericf("%ld = SSL_writev(%p, %p, %d)\n", rc, psock, iovs, iovcnt);
 #else
         rc = sendmsg(psock->fd, &msg, flags);
+        ericf("%ld = sendmsg(%d, %p, %d)\n", rc, psock->fd, &msg, flags);
 	if (rc <= 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || (errno == ENOBUFS && psock->zcopy)) {
 			return 0;
@@ -1481,7 +1483,6 @@ if (ssl_get_error == SSL_ERROR_SSL) {
                         get_error();
                 }
 else if (ssl_get_error == SSL_ERROR_WANT_READ) {
-print_trace();
 ericf("SSL_ERROR_WANT_READ\n");
 errno = EAGAIN;
 sock->ssl_wanted = SSL_ERROR_WANT_READ;
@@ -1552,6 +1553,7 @@ posix_sock_read(struct spdk_posix_sock *sock)
 #else
 		bytes = readv(sock->fd, iov, 2);
 #endif
+ericf("%d = readv(%d, %p, %d)\n", bytes, sock->fd, iov, 2);
 		if (bytes > 0) {
 			spdk_pipe_writer_advance(sock->recv_pipe, bytes);
 
@@ -1578,7 +1580,7 @@ posix_sock_read(struct spdk_posix_sock *sock)
 static ssize_t
 posix_sock_readv(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 {
-        ericf("posix_sock_readv\n");
+//        ericf("posix_sock_readv\n");
 	struct spdk_posix_sock *sock = __posix_sock(_sock);
 	struct spdk_posix_sock_group_impl *group = __posix_group_impl(sock->base.group_impl);
 	int rc, i;
@@ -1592,12 +1594,11 @@ ericf("sock->recv_pipe == NULL, %p = group, %d = sock->pending_events\n", group,
 		}
 #ifdef TLS
                 ssize_t r = SSL_readv(sock, iov, iovcnt);
-ericf("fd = %d, %ld = SSL_readv1(%p, %p, %d)\n", sock->fd, r, sock->ssl, iov, iovcnt);
+ericf("%d = SSL_readv(%p, %p, %d)\n", sock->fd, sock->ssl, iov, iovcnt);
                 return r;
 #else
-ericf("readv1\n");
                         ssize_t r = readv(sock->fd, iov, iovcnt);
-                        ericf("%ld\n", r);
+                        ericf("%ld = readv(%d, %p, %d)\n", r, sock->fd, iov, iovcnt);
 for (int i = 0; i < iovcnt; ++i) {
   ericf("data %d: %.*s\n", i, (int)iov[i].iov_len, (char*)iov[i].iov_base);
 }
