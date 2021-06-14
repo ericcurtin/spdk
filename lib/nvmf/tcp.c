@@ -783,8 +783,8 @@ nvmf_tcp_qpair_disconnect(struct spdk_nvmf_tcp_qpair *tqpair)
 	SPDK_DEBUGLOG(nvmf_tcp, "Disconnecting qpair %p\n", tqpair);
 
 	if (tqpair->state <= NVME_TCP_QPAIR_STATE_RUNNING) {
+ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR, %d = tqpair->state\n", tqpair->state);
 		tqpair->state = NVME_TCP_QPAIR_STATE_EXITING;
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 		nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 		spdk_poller_unregister(&tqpair->timeout_poller);
 
