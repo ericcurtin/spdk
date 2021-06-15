@@ -98,6 +98,7 @@ nvmf_poll_group_poll(void *ctx)
 	struct spdk_nvmf_transport_poll_group *tgroup;
 
 	TAILQ_FOREACH(tgroup, &group->tgroups, link) {
+//                ericf("TAILQ_FOREACH(tgroup, &group->tgroups, link)\n");
 		rc = nvmf_transport_poll_group_poll(tgroup);
 		if (rc < 0) {
 			return SPDK_POLLER_BUSY;

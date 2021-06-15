@@ -552,9 +552,26 @@ static SSL *create_ssl_object_client(SSL_CTX *ctx, int fd) {
 }
 
 #define get_error(void) \
-SPDK_ERRLOG(" "); \
-  ERR_print_errors_fp(stderr); \
-  fprintf(stderr, "\n");
+do { \
+    unsigned long l; \
+    char buf[256]; \
+    const char *file, *data; \
+    int line, flags; \
+\
+    union {\
+        CRYPTO_THREAD_ID tid;\
+        unsigned long ltid;\
+    } tid;\
+ \
+    tid.ltid = 0; \
+    tid.tid = CRYPTO_THREAD_get_current_id(); \
+\
+    while ((l = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) { \
+        ERR_error_string_n(l, buf, sizeof(buf)); \
+        SPDK_ERRLOG("%lu:%s:%s:%d:%s\n", tid.ltid, buf, \
+                     file, line, (flags & ERR_TXT_STRING) ? data : ""); \
+} \
+    } while(0);
 
 static void do_cleanup(SSL_CTX* ctx, SSL* ssl) {
   int fd;
@@ -767,6 +784,9 @@ ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
 }
 else if (ssl_get_error == SSL_ERROR_SYSCALL) {
 ericf("SSL_ERROR_SYSCALL\n");
+                    while((ssl_get_error = ERR_get_error())) {
+ericf("%s\n", ERR_error_string(ssl_get_error, NULL));
+}
 }
 else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
 ericf("SSL_ERROR_ZERO_RETURN\n");
@@ -1143,6 +1163,7 @@ static ssize_t SSL_writev (struct spdk_posix_sock *sock, const struct iovec *vec
       /* Check for ssize_t overflow.  */
       if (SSIZE_MAX - bytes < vector[i].iov_len)
 	{
+          ericf("overflow\n");
 	  return -1;
 	}
       bytes += vector[i].iov_len;
@@ -1166,15 +1187,20 @@ static ssize_t SSL_writev (struct spdk_posix_sock *sock, const struct iovec *vec
 
 size_t bytes_written;
 //retry:
+ERR_clear_error();
   bytes_written = SSL_write(sock->ssl, buffer, bytes);
-//  SPDK_ERRLOG("%ld = SSL_write(%p, '%s', %ld)\n", bytes_written, sock->ssl, buffer, bytes);
+  SPDK_ERRLOG("%ld = SSL_write(%p, '%s', %ld)\n", bytes_written, sock->ssl, buffer, bytes);
+  SPDK_ERRLOG("%ld = SSL_write(%p, '%s', %ld)\n", bytes_written, sock->ssl, buffer, bytes);
   if (bytes_written <= 0) {
+  SPDK_ERRLOG("%ld = SSL_write(%p, '%s', %ld)\n", bytes_written, sock->ssl, buffer, bytes);
                 int ssl_get_error = SSL_get_error(sock->ssl, bytes_written);
                 SPDK_ERRLOG("%d = SSL_get_error(%p, %ld)\n", ssl_get_error, sock->ssl, bytes_written);
                 if (ssl_get_error == SSL_ERROR_SSL) {
                         get_error();
                 }
 else if (ssl_get_error == SSL_ERROR_WANT_READ) {
+errno = EAGAIN;
+sock->ssl_wanted = SSL_ERROR_WANT_READ;
 ericf("SSL_ERROR_WANT_READ\n");
 }
 else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
@@ -1187,6 +1213,7 @@ else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
 ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
 }
 else if (ssl_get_error == SSL_ERROR_SYSCALL) {
+errno = EAGAIN;
 ericf("SSL_ERROR_SYSCALL\n");
 }
 else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
@@ -1208,10 +1235,12 @@ else if (ssl_get_error == SSL_ERROR_WANT_CLIENT_HELLO_CB) {
 ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 }
 else {
+  ericf("bytes_written: %ld\n", bytes_written);
   sock->ssl_wanted = 0;
 }
 }
 
+   ericf("bytes_written: %ld\n", bytes_written);
   return bytes_written;
 }
 
@@ -1236,12 +1265,14 @@ _sock_flush(struct spdk_sock *sock)
 
 	/* Can't flush from within a callback or we end up with recursive calls */
 	if (sock->cb_cnt > 0) {
+                ericf("sock->cb_cnt\n");
 		return 0;
 	}
 
 	iovcnt = spdk_sock_prep_reqs(sock, iovs, 0, NULL);
 
 	if (iovcnt == 0) {
+//                ericf("iovcnt == 0\n"); very frequent
 		return 0;
 	}
 
@@ -1253,7 +1284,7 @@ _sock_flush(struct spdk_sock *sock)
 #ifdef SPDK_ZEROCOPY
 	if (psock->zcopy) {
 		flags = MSG_ZEROCOPY;
-	} else
+	} elsea
 #endif
 	{
 		flags = 0;
@@ -1261,11 +1292,13 @@ _sock_flush(struct spdk_sock *sock)
 #endif
 
 #ifdef TLS
+        ericf("pre SSL_writev\n");
 	rc = SSL_writev(psock, iovs, iovcnt);
         ericf("%ld = SSL_writev(%p, %p, %d)\n", rc, psock, iovs, iovcnt);
 #else
         rc = sendmsg(psock->fd, &msg, flags);
         ericf("%ld = sendmsg(%d, %p, %d)\n", rc, psock->fd, &msg, flags);
+#endif
 	if (rc <= 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || (errno == ENOBUFS && psock->zcopy)) {
 			return 0;
@@ -1273,7 +1306,7 @@ _sock_flush(struct spdk_sock *sock)
 
 		return rc;
 	}
-#endif
+//#endif
 
 	/* Handling overflow case, because we use psock->sendmsg_idx - 1 for the
 	 * req->internal.offset, so sendmsg_idx should not be zero  */
@@ -1339,6 +1372,7 @@ _sock_flush(struct spdk_sock *sock)
 static int
 posix_sock_flush(struct spdk_sock *sock)
 {
+ericf("posix_sock_flush\n");
 #ifdef SPDK_ZEROCOPY
 	struct spdk_posix_sock *psock = __posix_sock(sock);
 
@@ -1456,10 +1490,10 @@ ericf("SSL_ERROR_WANT_CLIENT_HELLO_CB\n");
 #endif
 
 static ssize_t SSL_readv(struct spdk_posix_sock *sock, const struct iovec *vector, int count) {
-  if (sock->ssl_wanted && sock->ssl_wanted != SSL_ERROR_WANT_READ) {
-    ericf("ssl_wanted: %d\n", sock->ssl_wanted);
-    return -1;
-  }
+//  if (sock->ssl_wanted && sock->ssl_wanted != SSL_ERROR_WANT_READ) {
+//#    ericf("ssl_wanted: %d\n", sock->ssl_wanted);
+//    return -1;
+//  }
 
   /* Find the total number of bytes to be read.  */
   size_t bytes = 0;
@@ -1475,11 +1509,24 @@ static ssize_t SSL_readv(struct spdk_posix_sock *sock, const struct iovec *vecto
       bytes += vector[i].iov_len;
     }
 
-  char *buffer = (char *) alloca (bytes);
+  char *buffer = (char *) malloc (bytes);
+  char *buf_to_free = buffer;
 
   ssize_t bytes_read;
 //retry:
+ERR_clear_error();
+
+//  if (!SSL_has_pending(sock->ssl)) {
+//    return -1;
+//  }
+  BIO *rbio = SSL_get_rbio(sock->ssl);
+  if (BIO_eof(rbio)) {
+    return -1;
+  }
+
   bytes_read = SSL_read(sock->ssl, buffer, bytes);
+  perror("\n");
+  int errnum = errno;
   if (bytes_read <= 0) {
                 int ssl_get_error = SSL_get_error(sock->ssl, bytes_read);
                 SPDK_ERRLOG("%ld = SSL_read(%p, '', %ld), %d = SSL_get_error(%p, %ld)\n", bytes_read, sock->ssl, /*buffer,*/ bytes, ssl_get_error, sock->ssl, bytes_read);
@@ -1493,12 +1540,27 @@ sock->ssl_wanted = SSL_ERROR_WANT_READ;
 }
 else if (ssl_get_error == SSL_ERROR_WANT_WRITE) {
 ericf("SSL_ERROR_WANT_WRITE\n");
+errno = EAGAIN;
+sock->ssl_wanted = SSL_ERROR_WANT_WRITE;
 }
 else if (ssl_get_error == SSL_ERROR_WANT_X509_LOOKUP) {
 ericf("SSL_ERROR_WANT_X509_LOOKUP\n");
 }
 else if (ssl_get_error == SSL_ERROR_SYSCALL) {
-ericf("SSL_ERROR_SYSCALL\n");
+errno = EAGAIN;
+#if 0
+The SSL_ERROR_SYSCALL with errno value of 0 indicates unexpected EOF from the peer. This will be properly reported as SSL_ERROR_SSL with reason code SSL_R_UNEXPECTED_EOF_WHILE_READING in the OpenSSL 3.0 release because it is truly a TLS protocol error to terminate the connection without a SSL_shutdown().
+
+The issue is kept unfixed in OpenSSL 1.1.1 releases because many applications which choose to ignore this protocol error depend on the existing way of reporting the error.
+#endif
+if (!errnum) {
+  ericf("The SSL_ERROR_SYSCALL with errno value of 0 indicates unexpected EOF from the peer\n");
+}
+
+ericf("SSL_ERROR_SYSCALL, errno: %d\n", errnum);
+                    while((ssl_get_error = ERR_get_error())) {
+ericf("%s\n", ERR_error_string(ssl_get_error, NULL));
+}
 }
 else if (ssl_get_error == SSL_ERROR_ZERO_RETURN) {
 ericf("SSL_ERROR_ZERO_RETURN\n");
@@ -1536,6 +1598,7 @@ sock->ssl_wanted = 0;
 	break;
     }
 
+  free(buf_to_free);
   return bytes_read;
 }
 
@@ -1544,7 +1607,7 @@ sock->ssl_wanted = 0;
 static inline ssize_t
 posix_sock_read(struct spdk_posix_sock *sock)
 {
-//        ericf("posix_sock_read\n");
+        ericf("posix_sock_read\n");
 	struct iovec iov[2];
 	int bytes;
 	struct spdk_posix_sock_group_impl *group;
@@ -1552,6 +1615,7 @@ posix_sock_read(struct spdk_posix_sock *sock)
 	bytes = spdk_pipe_writer_get_buffer(sock->recv_pipe, sock->recv_buf_sz, iov);
 
 	if (bytes > 0) {
+ericf("pre_read\n");
 #ifdef TLS
                 bytes = SSL_readv(sock, iov, 2);
 #else
@@ -1584,7 +1648,7 @@ ericf("%d = readv(%d, %p, %d)\n", bytes, sock->fd, iov, 2);
 static ssize_t
 posix_sock_readv(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 {
-//        ericf("posix_sock_readv\n");
+        ericf("posix_sock_readv\n");
 	struct spdk_posix_sock *sock = __posix_sock(_sock);
 	struct spdk_posix_sock_group_impl *group = __posix_group_impl(sock->base.group_impl);
 	int rc, i;
@@ -1642,6 +1706,9 @@ for (int i = 0; i < iovcnt; ++i) {
 			return rc;
 		}
 	}
+        else {
+            ericf("not enough bytes avail\n");
+        }
 
 	return posix_sock_recv_from_pipe(sock, iov, iovcnt);
 }
@@ -1649,6 +1716,7 @@ for (int i = 0; i < iovcnt; ++i) {
 static ssize_t
 posix_sock_recv(struct spdk_sock *sock, void *buf, size_t len)
 {
+        print_trace();
         ericf("\n");
 	struct iovec iov[1];
 
@@ -1688,6 +1756,7 @@ posix_sock_writev(struct spdk_sock *_sock, struct iovec *iov, int iovcnt)
 static void
 posix_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 {
+        ericf("posix_sock_writev_async\n");
 	int rc;
 
 	spdk_sock_request_queue(sock, req);
@@ -1978,6 +2047,7 @@ static int
 posix_sock_group_impl_poll(struct spdk_sock_group_impl *_group, int max_events,
 			   struct spdk_sock **socks)
 {
+//ericf("posix_sock_group_impl_poll\n");
 	struct spdk_posix_sock_group_impl *group = __posix_group_impl(_group);
 	struct spdk_sock *sock, *tmp;
 	int num_events, i, rc;
@@ -2151,6 +2221,7 @@ posix_sock_group_impl_poll(struct spdk_sock_group_impl *_group, int max_events,
 		group->pending_events.tqh_last = &pc->link.tqe_next;
 	}
 
+//        ericf("return %d;\n", num_events);
 	return num_events;
 }
 

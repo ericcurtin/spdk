@@ -42,6 +42,7 @@
 #include "spdk/sock.h"
 #include "spdk/queue.h"
 #include "spdk/likely.h"
+#include "spdk/log.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -228,6 +229,12 @@ static inline int
 spdk_sock_prep_reqs(struct spdk_sock *_sock, struct iovec *iovs, int index,
 		    struct spdk_sock_request **last_req)
 {
+#if 0
+        if (index) {
+        ericf("spdk_sock_prep_reqs(%p, %p, %d, %p)\n", _sock, iovs, index, last_req);
+}
+#endif
+
 	int iovcnt, i;
 	struct spdk_sock_request *req;
 	unsigned int offset;
@@ -256,6 +263,7 @@ spdk_sock_prep_reqs(struct spdk_sock *_sock, struct iovec *iovs, int index,
 
 			iovs[iovcnt].iov_base = SPDK_SOCK_REQUEST_IOV(req, i)->iov_base + offset;
 			iovs[iovcnt].iov_len = SPDK_SOCK_REQUEST_IOV(req, i)->iov_len - offset;
+                        ericf("iovcnt++;\n");
 			iovcnt++;
 
 			offset = 0;

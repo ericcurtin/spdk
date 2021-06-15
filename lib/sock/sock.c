@@ -433,6 +433,7 @@ spdk_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 int
 spdk_sock_flush(struct spdk_sock *sock)
 {
+        ericf("spdk_sock_flush\n");
 	if (sock == NULL || sock->flags.closed) {
 		return -EBADF;
 	}
@@ -605,6 +606,7 @@ sock_group_impl_poll_count(struct spdk_sock_group_impl *group_impl,
 			   struct spdk_sock_group *group,
 			   int max_events)
 {
+//        ericf("sock_group_impl_poll_count\n");
 	struct spdk_sock *socks[MAX_EVENTS_PER_POLL];
 	int num_events, i;
 
@@ -620,6 +622,7 @@ sock_group_impl_poll_count(struct spdk_sock_group_impl *group_impl,
 	for (i = 0; i < num_events; i++) {
 		struct spdk_sock *sock = socks[i];
 		assert(sock->cb_fn != NULL);
+                ericf("nvmf_tcp_sock_cb\n");
 		sock->cb_fn(sock->cb_arg, group, sock);
 	}
 
@@ -646,6 +649,7 @@ spdk_sock_group_poll_count(struct spdk_sock_group *group, int max_events)
 	}
 
 	STAILQ_FOREACH_FROM(group_impl, &group->group_impls, link) {
+//                ericf("STAILQ_FOREACH_FROM(group_impl, &group->group_impls, link)\n");
 		rc = sock_group_impl_poll_count(group_impl, group, max_events);
 		if (rc < 0) {
 			num_events = -1;

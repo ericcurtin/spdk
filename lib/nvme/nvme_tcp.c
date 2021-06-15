@@ -525,6 +525,7 @@ nvme_tcp_build_contig_request(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_req
 
 	tcp_req->iov[0].iov_base = req->payload.contig_or_cb_arg + req->payload_offset;
 	tcp_req->iov[0].iov_len = req->payload_size;
+        ericf("tcp_req->iovcnt = 1;\n");
 	tcp_req->iovcnt = 1;
 
 	SPDK_DEBUGLOG(nvme, "enter\n");
@@ -565,6 +566,7 @@ nvme_tcp_build_sgl_request(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_req *t
 		length = spdk_min(length, remaining_size);
 		tcp_req->iov[iovcnt].iov_len = length;
 		remaining_size -= length;
+                ericf(" iovcnt++;\n");
 		iovcnt++;
 	} while (remaining_size > 0 && iovcnt < max_num_sgl);
 
@@ -576,6 +578,7 @@ nvme_tcp_build_sgl_request(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_req *t
 		return -1;
 	}
 
+        ericf("cp_req->iovcnt = iovcnt;\n");
 	tcp_req->iovcnt = iovcnt;
 
 	return 0;

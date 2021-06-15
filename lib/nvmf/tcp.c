@@ -1962,6 +1962,7 @@ nvmf_tcp_sock_process(struct spdk_nvmf_tcp_qpair *tqpair)
 				return rc;
 			}
 
+                        ericf("rc = nvme_tcp_read_data(tqpair->sock\n");
 			rc = nvme_tcp_read_data(tqpair->sock,
 						sizeof(struct spdk_nvme_tcp_common_pdu_hdr) - pdu->ch_valid_bytes,
 						(void *)&pdu->hdr.common + pdu->ch_valid_bytes);
@@ -2186,6 +2187,7 @@ nvmf_tcp_req_parse_sgl(struct spdk_nvmf_tcp_req *tcp_req,
 
 		req->iov[0].iov_base = req->data;
 		req->iov[0].iov_len = length;
+                ericf("req->iovcnt = 1;\n");
 		req->iovcnt = 1;
 
 		return 0;
@@ -2617,6 +2619,7 @@ ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 static void
 nvmf_tcp_sock_cb(void *arg, struct spdk_sock_group *group, struct spdk_sock *sock)
 {
+        ericf("nvmf_tcp_sock_cb\n");
 	struct spdk_nvmf_tcp_qpair *tqpair = arg;
 	int rc;
 

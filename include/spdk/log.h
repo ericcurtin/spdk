@@ -162,6 +162,28 @@ enum spdk_log_level spdk_log_get_print_level(void);
 #define SPDK_LOGDUMP(...) do { } while (0)
 #endif
 
+#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
+
+/* Obtain a backtrace and print it to @code{stdout}. */
+#define print_trace(x) \
+do { \
+  const size_t max_size = 16; \
+  void *array[max_size]; \
+  char **strings; \
+  int size; \
+\
+  size = backtrace (array, max_size); \
+  strings = backtrace_symbols (array, size); \
+  if (strings != NULL) \
+  { \
+    for (int i = 0; i < size; i++) \
+      ericf ("%s\n", strings[i]); \
+  } \
+\
+  ericf("\n"); \
+  free (strings); \
+} while(0)
+
 /**
  * Write messages to the log file. If \c level is set to \c SPDK_LOG_DISABLED,
  * this log message won't be written.

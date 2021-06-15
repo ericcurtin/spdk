@@ -184,28 +184,6 @@ spdk_sn32_gt(uint32_t s1, uint32_t s2)
 		(s1 > s2 && s1 - s2 < SPDK_SN32_CMPMAX));
 }
 
-#define ericf(x, ...) SPDK_ERRLOG(x, ##__VA_ARGS__)
-
-/* Obtain a backtrace and print it to @code{stdout}. */
-#define print_trace(x) \
-do { \
-  const size_t max_size = 16; \
-  void *array[max_size]; \
-  char **strings; \
-  int size; \
-\
-  size = backtrace (array, max_size); \
-  strings = backtrace_symbols (array, size); \
-  if (strings != NULL) \
-  { \
-    for (int i = 0; i < size; i++) \
-      ericf ("%s\n", strings[i]); \
-  } \
-\
-  ericf("\n"); \
-  free (strings); \
-} while(0)
-
 #ifdef __cplusplus
 }
 #endif

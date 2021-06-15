@@ -1292,6 +1292,7 @@ spdk_poller_register_named(spdk_poller_fn fn,
 			   uint64_t period_microseconds,
 			   const char *name)
 {
+//        ericf("spdk_poller_register_named(%p, %p, %lu, %p)\n", fn, arg, period_microseconds, name);
 	return poller_register(fn, arg, period_microseconds, name);
 }
 

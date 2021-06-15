@@ -653,6 +653,7 @@ nvmf_request_set_buffer(struct spdk_nvmf_request *req, void *buf, uint32_t lengt
 					 ~NVMF_DATA_BUFFER_MASK);
 	req->iov[req->iovcnt].iov_len  = spdk_min(length, io_unit_size);
 	length -= req->iov[req->iovcnt].iov_len;
+        ericf("req->iovcnt++;\n");
 	req->iovcnt++;
 
 	return length;
