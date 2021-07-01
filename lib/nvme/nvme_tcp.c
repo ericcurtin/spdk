@@ -752,6 +752,7 @@ static int
 nvme_tcp_qpair_submit_request(struct spdk_nvme_qpair *qpair,
 			      struct nvme_request *req)
 {
+        ericf("nvme_tcp_req_init(tqpair, req, tcp_req)\n");
 	struct nvme_tcp_qpair *tqpair;
 	struct nvme_tcp_req *tcp_req;
 
@@ -765,6 +766,7 @@ nvme_tcp_qpair_submit_request(struct spdk_nvme_qpair *qpair,
 		return -EAGAIN;
 	}
 
+//        ericf("nvme_tcp_req_init(tqpair, req, tcp_req)\n");
 	if (nvme_tcp_req_init(tqpair, req, tcp_req)) {
 		SPDK_ERRLOG("nvme_tcp_req_init() failed\n");
 		TAILQ_REMOVE(&tcp_req->tqpair->outstanding_reqs, tcp_req, link);

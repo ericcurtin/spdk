@@ -441,11 +441,13 @@ nvme_transport_qpair_submit_request(struct spdk_nvme_qpair *qpair, struct nvme_r
 	const struct spdk_nvme_transport *transport;
 
 	if (spdk_likely(!nvme_qpair_is_admin_queue(qpair))) {
+                ericf("spdk_likely(!nvme_qpair_is_admin_queue(qpair))\n");
 		return qpair->transport->ops.qpair_submit_request(qpair, req);
 	}
 
 	transport = nvme_get_transport(qpair->ctrlr->trid.trstring);
 	assert(transport != NULL);
+        ericf("transport->ops.qpair_submit_request(qpair, req)\n");
 	return transport->ops.qpair_submit_request(qpair, req);
 }
 
