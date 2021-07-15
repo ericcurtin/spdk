@@ -377,7 +377,7 @@ nvme_transport_ctrlr_connect_qpair(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nv
 err:
 	/* If the qpair was unable to reconnect, restore the original failure reason. */
 	qpair->transport_failure_reason = transport_failure_reason;
-        ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
+	ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
 	nvme_transport_ctrlr_disconnect_qpair(ctrlr, qpair);
 	nvme_qpair_set_state(qpair, NVME_QPAIR_DISCONNECTED);
 	return rc;
@@ -401,7 +401,7 @@ nvme_transport_ctrlr_disconnect_qpair(struct spdk_nvme_ctrlr *ctrlr, struct spdk
 
 	transport->ops.ctrlr_disconnect_qpair(ctrlr, qpair);
 
-        ericf("call nvme_qpair_abort_reqs\n");
+	ericf("call nvme_qpair_abort_reqs\n");
 	nvme_qpair_abort_reqs(qpair, 0);
 	nvme_qpair_set_state(qpair, NVME_QPAIR_DISCONNECTED);
 }
@@ -441,13 +441,13 @@ nvme_transport_qpair_submit_request(struct spdk_nvme_qpair *qpair, struct nvme_r
 	const struct spdk_nvme_transport *transport;
 
 	if (spdk_likely(!nvme_qpair_is_admin_queue(qpair))) {
-                ericf("spdk_likely(!nvme_qpair_is_admin_queue(qpair))\n");
+		ericf("spdk_likely(!nvme_qpair_is_admin_queue(qpair))\n");
 		return qpair->transport->ops.qpair_submit_request(qpair, req);
 	}
 
 	transport = nvme_get_transport(qpair->ctrlr->trid.trstring);
 	assert(transport != NULL);
-        ericf("transport->ops.qpair_submit_request(qpair, req)\n");
+	ericf("transport->ops.qpair_submit_request(qpair, req)\n");
 	return transport->ops.qpair_submit_request(qpair, req);
 }
 

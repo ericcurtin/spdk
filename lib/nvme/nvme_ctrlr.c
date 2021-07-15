@@ -1357,7 +1357,7 @@ nvme_ctrlr_abort_queued_aborts(struct spdk_nvme_ctrlr *ctrlr)
 	struct nvme_request	*req, *tmp;
 	struct spdk_nvme_cpl	cpl = {};
 
-        SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
+	SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
 	cpl.status.sc = SPDK_NVME_SC_ABORTED_SQ_DELETION;
 	cpl.status.sct = SPDK_NVME_SCT_GENERIC;
 

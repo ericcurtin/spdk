@@ -547,7 +547,7 @@ _map_one(void *prv, uint64_t addr, uint64_t len)
 		      &vu_req->sg[vu_req->iovcnt],
 		      &vu_req->iov[vu_req->iovcnt]);
 	if (spdk_likely(ret != NULL)) {
-                ericf("vu_req->iovcnt++;\n");
+		ericf("vu_req->iovcnt++;\n");
 		vu_req->iovcnt++;
 	}
 	return ret;

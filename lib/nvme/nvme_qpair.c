@@ -620,7 +620,7 @@ nvme_qpair_check_enabled(struct spdk_nvme_qpair *qpair)
 		 * here.
 		 */
 		if (qpair->ctrlr->trid.trtype == SPDK_NVME_TRANSPORT_PCIE) {
-                        ericf("call nvme_qpair_abort_reqs\n");
+			ericf("call nvme_qpair_abort_reqs\n");
 			nvme_qpair_abort_reqs(qpair, 0);
 		}
 		nvme_qpair_set_state(qpair, NVME_QPAIR_ENABLED);
@@ -680,7 +680,7 @@ nvme_qpair_resubmit_requests(struct spdk_nvme_qpair *qpair, uint32_t num_request
 int32_t
 spdk_nvme_qpair_process_completions(struct spdk_nvme_qpair *qpair, uint32_t max_completions)
 {
-        ericf("spdk_nvme_qpair_process_completions(struct spdk_nvme_qpair *qpair, uint32_t max_completions)\n");
+	ericf("spdk_nvme_qpair_process_completions(struct spdk_nvme_qpair *qpair, uint32_t max_completions)\n");
 	int32_t ret;
 	struct nvme_request *req, *tmp;
 
@@ -925,7 +925,7 @@ _nvme_qpair_submit_request(struct spdk_nvme_qpair *qpair, struct nvme_request *r
 	if (spdk_likely(nvme_qpair_get_state(qpair) == NVME_QPAIR_ENABLED) ||
 	    (req->cmd.opc == SPDK_NVME_OPC_FABRIC &&
 	     nvme_qpair_get_state(qpair) == NVME_QPAIR_CONNECTING)) {
-                ericf("rc = nvme_transport_qpair_submit_request(qpair, req);\n");
+		ericf("rc = nvme_transport_qpair_submit_request(qpair, req);\n");
 		rc = nvme_transport_qpair_submit_request(qpair, req);
 	} else {
 		/* The controller is being reset - queue this request and
@@ -976,8 +976,8 @@ nvme_qpair_submit_request(struct spdk_nvme_qpair *qpair, struct nvme_request *re
 		return 0;
 	}
 
-        print_trace();
-        ericf("rc = _nvme_qpair_submit_request(qpair, req);\n");
+//        print_trace();
+	ericf("rc = _nvme_qpair_submit_request(qpair, req);\n");
 	rc = _nvme_qpair_submit_request(qpair, req);
 	if (rc == -EAGAIN) {
 		STAILQ_INSERT_TAIL(&qpair->queued_req, req, stailq);

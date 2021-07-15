@@ -340,7 +340,7 @@ nvme_tcp_ctrlr_delete_io_qpair(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_q
 	struct nvme_tcp_qpair *tqpair;
 
 	assert(qpair != NULL);
-        ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
+	ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
 	nvme_transport_ctrlr_disconnect_qpair(ctrlr, qpair);
 	nvme_tcp_qpair_abort_reqs(qpair, 1);
 	nvme_qpair_deinit(qpair);
@@ -395,7 +395,7 @@ _pdu_write_done(void *cb_arg, int err)
 
 	if (err != 0) {
 //                print_trace();
-                ericf("call nvme_transport_ctrlr_disconnect_qpair err=%d\n", err);
+		ericf("call nvme_transport_ctrlr_disconnect_qpair err=%d\n", err);
 		nvme_transport_ctrlr_disconnect_qpair(tqpair->qpair.ctrlr, &tqpair->qpair);
 		return;
 	}
@@ -525,7 +525,7 @@ nvme_tcp_build_contig_request(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_req
 
 	tcp_req->iov[0].iov_base = req->payload.contig_or_cb_arg + req->payload_offset;
 	tcp_req->iov[0].iov_len = req->payload_size;
-        ericf("tcp_req->iovcnt = 1;\n");
+	ericf("tcp_req->iovcnt = 1;\n");
 	tcp_req->iovcnt = 1;
 
 	SPDK_DEBUGLOG(nvme, "enter\n");
@@ -566,7 +566,7 @@ nvme_tcp_build_sgl_request(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_req *t
 		length = spdk_min(length, remaining_size);
 		tcp_req->iov[iovcnt].iov_len = length;
 		remaining_size -= length;
-                ericf(" iovcnt++;\n");
+		ericf(" iovcnt++;\n");
 		iovcnt++;
 	} while (remaining_size > 0 && iovcnt < max_num_sgl);
 
@@ -578,7 +578,7 @@ nvme_tcp_build_sgl_request(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_req *t
 		return -1;
 	}
 
-        ericf("cp_req->iovcnt = iovcnt;\n");
+	ericf("cp_req->iovcnt = iovcnt;\n");
 	tcp_req->iovcnt = iovcnt;
 
 	return 0;
@@ -752,7 +752,7 @@ static int
 nvme_tcp_qpair_submit_request(struct spdk_nvme_qpair *qpair,
 			      struct nvme_request *req)
 {
-        ericf("nvme_tcp_req_init(tqpair, req, tcp_req)\n");
+	ericf("nvme_tcp_req_init(tqpair, req, tcp_req)\n");
 	struct nvme_tcp_qpair *tqpair;
 	struct nvme_tcp_req *tcp_req;
 
@@ -800,12 +800,12 @@ nvme_tcp_req_complete(struct nvme_tcp_req *tcp_req,
 static void
 nvme_tcp_qpair_abort_reqs(struct spdk_nvme_qpair *qpair, uint32_t dnr)
 {
-        SPDK_ERRLOG("%p, %d\n", qpair, dnr);
+	SPDK_ERRLOG("%p, %d\n", qpair, dnr);
 	struct nvme_tcp_req *tcp_req, *tmp;
 	struct spdk_nvme_cpl cpl;
 	struct nvme_tcp_qpair *tqpair = nvme_tcp_qpair(qpair);
 
-        SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
+	SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
 	cpl.status.sc = SPDK_NVME_SC_ABORTED_SQ_DELETION;
 	cpl.status.sct = SPDK_NVME_SCT_GENERIC;
 	cpl.status.dnr = dnr;
@@ -879,7 +879,7 @@ nvme_tcp_qpair_send_h2c_term_req(struct nvme_tcp_qpair *tqpair, struct nvme_tcp_
 
 	/* Contain the header len of the wrong received pdu */
 	h2c_term_req->common.plen = h2c_term_req->common.hlen + copy_len;
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+	ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 	nvme_tcp_qpair_write_pdu(tqpair, rsp_pdu, nvme_tcp_qpair_send_h2c_term_req_complete, tqpair);
 
@@ -909,7 +909,8 @@ nvme_tcp_pdu_ch_handle(struct nvme_tcp_qpair *tqpair)
 		}
 	} else {
 		if (tqpair->state != NVME_TCP_QPAIR_STATE_RUNNING) {
-			SPDK_ERRLOG("The TCP/IP tqpair connection is not negotitated state=%d\n", tqpair->state); // Here friday
+			SPDK_ERRLOG("The TCP/IP tqpair connection is not negotitated state=%d\n",
+				    tqpair->state); // Here friday
 			fes = SPDK_NVME_TCP_TERM_REQ_FES_PDU_SEQUENCE_ERROR;
 			goto err;
 		}
@@ -1050,7 +1051,7 @@ nvme_tcp_c2h_term_req_payload_handle(struct nvme_tcp_qpair *tqpair,
 				     struct nvme_tcp_pdu *pdu)
 {
 	nvme_tcp_c2h_term_req_dump(&pdu->hdr.term_req);
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+	ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 }
 
@@ -1107,20 +1108,19 @@ nvme_tcp_send_icreq_complete(void *cb_arg)
 
 	if (tqpair->state == NVME_TCP_QPAIR_STATE_INITIALIZING) {
 		SPDK_ERRLOG("tqpair %p %u, finilize icresp\n", tqpair, tqpair->qpair.id);
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+		ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 		tqpair->state = NVME_TCP_QPAIR_STATE_RUNNING;
+	} else {
+		SPDK_ERRLOG("The TCP/IP tqpair connection is not negotitated state=%d\n",
+			    tqpair->state);
 	}
-        else {
-                SPDK_ERRLOG("The TCP/IP tqpair connection is not negotitated state=%d\n",
-                            tqpair->state);
-        }
 }
 
 static void
 nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 		       struct nvme_tcp_pdu *pdu)
 {
-        print_trace();
+	print_trace();
 	struct spdk_nvme_tcp_ic_resp *ic_resp = &pdu->hdr.ic_resp;
 	uint32_t error_offset = 0;
 	enum spdk_nvme_tcp_term_req_fes fes;
@@ -1171,22 +1171,22 @@ nvme_tcp_icresp_handle(struct nvme_tcp_qpair *tqpair,
 
 	if (spdk_sock_set_recvbuf(tqpair->sock, recv_buf_size * SPDK_NVMF_TCP_RECV_BUF_SIZE_FACTOR) < 0) {
 		SPDK_ERRLOG("Unable to allocate enough memory for receive buffer on tqpair=%p with size=%d\n",
-			     tqpair,
-			     recv_buf_size);
+			    tqpair,
+			    recv_buf_size);
 		/* Not fatal. */
 	}
 
 	nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_READY);
 
-        ericf("attempt to set NVME_TCP_QPAIR_STATE_INITIALIZING tqpair->flags.icreq_send_ack=%d\n",
-                tqpair->flags.icreq_send_ack);
+	ericf("attempt to set NVME_TCP_QPAIR_STATE_INITIALIZING tqpair->flags.icreq_send_ack=%d\n",
+	      tqpair->flags.icreq_send_ack);
 	if (!tqpair->flags.icreq_send_ack) {
 		tqpair->state = NVME_TCP_QPAIR_STATE_INITIALIZING;
 		SPDK_ERRLOG("tqpair %p %u, waiting icreq ack\n", tqpair, tqpair->qpair.id);
 		return;
 	}
 
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair->state = NVME_TCP_QPAIR_STATE_RUNNING;
 	return;
 end:
@@ -1537,7 +1537,7 @@ nvme_tcp_pdu_psh_handle(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 static int
 nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 {
-        ericf("\n");
+	ericf("\n");
 	int rc = 0;
 	struct nvme_tcp_pdu *pdu;
 	uint32_t data_len;
@@ -1556,7 +1556,7 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 		case NVME_TCP_PDU_RECV_STATE_AWAIT_PDU_CH:
 			pdu = &tqpair->recv_pdu;
 			if (pdu->ch_valid_bytes < sizeof(struct spdk_nvme_tcp_common_pdu_hdr)) {
-                                ericf("\n");
+				ericf("\n");
 				rc = nvme_tcp_read_data(tqpair->sock,
 							sizeof(struct spdk_nvme_tcp_common_pdu_hdr) - pdu->ch_valid_bytes,
 							(uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
@@ -1564,7 +1564,7 @@ nvme_tcp_read_pdu(struct nvme_tcp_qpair *tqpair, uint32_t *reaped)
 //                    (uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
 //ericf("data: '%.*s'\n", rc, (uint8_t *)&pdu->hdr.common + pdu->ch_valid_bytes);
 				if (rc < 0) {
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+					ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 					nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 					break;
 				}
@@ -1585,7 +1585,7 @@ ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 						pdu->psh_len - pdu->psh_valid_bytes,
 						(uint8_t *)&pdu->hdr.raw + sizeof(struct spdk_nvme_tcp_common_pdu_hdr) + pdu->psh_valid_bytes);
 			if (rc < 0) {
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+				ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 				nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 				break;
 			}
@@ -1616,7 +1616,7 @@ ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 
 			rc = nvme_tcp_read_payload_data(tqpair->sock, pdu);
 			if (rc < 0) {
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+				ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 				nvme_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 				break;
 			}
@@ -1633,7 +1633,7 @@ ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 			break;
 		case NVME_TCP_PDU_RECV_STATE_ERROR:
 			rc = NVME_TCP_PDU_FATAL;
-                        ericf("NVME_TCP_PDU_FATAL\n");
+			ericf("NVME_TCP_PDU_FATAL\n");
 			break;
 		default:
 			assert(0);
@@ -1714,9 +1714,9 @@ nvme_tcp_qpair_process_completions(struct spdk_nvme_qpair *qpair, uint32_t max_c
 		rc = nvme_tcp_read_pdu(tqpair, &reaped);
 		if (rc < 0) {
 			SPDK_ERRLOG("Error polling CQ! rc=%d (%d): %s\n",
-				      rc, errno, spdk_strerror(errno));
+				    rc, errno, spdk_strerror(errno));
 //                        if (errno != EAGAIN) {
-               			goto fail;
+			goto fail;
 //                        }
 		} else if (rc == 0) {
 			/* Partial PDU is read */
@@ -1740,7 +1740,7 @@ fail:
 	qpair->transport_failure_reason = SPDK_NVME_QPAIR_FAILURE_UNKNOWN;
 
 	if (nvme_qpair_is_admin_queue(qpair)) {
-                ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
+		ericf("call nvme_transport_ctrlr_disconnect_qpair\n");
 		nvme_transport_ctrlr_disconnect_qpair(qpair->ctrlr, qpair);
 	} else {
 		nvme_ctrlr_disconnect_qpair(qpair);
@@ -1779,7 +1779,7 @@ dummy_disconnected_qpair_cb(struct spdk_nvme_qpair *qpair, void *poll_group_ctx)
 static int
 nvme_tcp_qpair_icreq_send(struct nvme_tcp_qpair *tqpair)
 {
-        ericf("\n");
+	ericf("\n");
 	struct spdk_nvme_tcp_ic_req *ic_req;
 	struct nvme_tcp_pdu *pdu;
 	uint64_t icreq_timeout_tsc;
@@ -1808,7 +1808,8 @@ nvme_tcp_qpair_icreq_send(struct nvme_tcp_qpair *tqpair)
 		} else {
 			rc = nvme_tcp_qpair_process_completions(&tqpair->qpair, 0);
 		}
-                ericf("tqpair->qpair.poll_group: %p tqpair->state: %d rc: %d\n", tqpair->qpair.poll_group, tqpair->state, rc); 
+		ericf("tqpair->qpair.poll_group: %p tqpair->state: %d rc: %d\n", tqpair->qpair.poll_group,
+		      tqpair->state, rc);
 	} while ((tqpair->state != NVME_TCP_QPAIR_STATE_RUNNING) &&
 		 (rc >= 0) && (spdk_get_ticks() <= icreq_timeout_tsc));
 
@@ -1987,7 +1988,7 @@ static struct spdk_nvme_ctrlr *nvme_tcp_ctrlr_construct(const struct spdk_nvme_t
 		const struct spdk_nvme_ctrlr_opts *opts,
 		void *devhandle)
 {
-        ericf("\n");
+	ericf("\n");
 	struct nvme_tcp_ctrlr *tctrlr;
 	union spdk_nvme_cap_register cap;
 	union spdk_nvme_vs_register vs;
@@ -2096,7 +2097,7 @@ nvme_tcp_admin_qpair_abort_aers(struct spdk_nvme_qpair *qpair)
 	struct spdk_nvme_cpl cpl;
 	struct nvme_tcp_qpair *tqpair = nvme_tcp_qpair(qpair);
 
-        SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
+	SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
 	cpl.status.sc = SPDK_NVME_SC_ABORTED_SQ_DELETION;
 	cpl.status.sct = SPDK_NVME_SCT_GENERIC;
 

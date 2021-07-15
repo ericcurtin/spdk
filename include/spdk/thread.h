@@ -589,7 +589,7 @@ struct spdk_poller *spdk_poller_register_named(spdk_poller_fn fn,
  * to the string of the poller function name.
  */
 #define SPDK_POLLER_REGISTER(fn, arg, period_microseconds)	\
-	spdk_poller_register_named(fn, arg, period_microseconds, #fn) 
+	spdk_poller_register_named(fn, arg, period_microseconds, #fn)
 
 /**
  * Unregister a poller on the current thread.

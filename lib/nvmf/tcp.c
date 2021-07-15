@@ -779,11 +779,11 @@ static void nvmf_tcp_qpair_set_recv_state(struct spdk_nvmf_tcp_qpair *tqpair,
 static void
 nvmf_tcp_qpair_disconnect(struct spdk_nvmf_tcp_qpair *tqpair)
 {
-        print_trace();
+	print_trace();
 	SPDK_DEBUGLOG(nvmf_tcp, "Disconnecting qpair %p\n", tqpair);
 
 	if (tqpair->state <= NVME_TCP_QPAIR_STATE_RUNNING) {
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR, %d = tqpair->state\n", tqpair->state);
+		ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR, %d = tqpair->state\n", tqpair->state);
 		tqpair->state = NVME_TCP_QPAIR_STATE_EXITING;
 		nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 		spdk_poller_unregister(&tqpair->timeout_poller);
@@ -1324,7 +1324,7 @@ nvmf_tcp_send_c2h_term_req(struct spdk_nvmf_tcp_qpair *tqpair, struct nvme_tcp_p
 
 	/* Contain the header of the wrong received pdu */
 	c2h_term_req->common.plen = c2h_term_req->common.hlen + copy_len;
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+	ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 	nvmf_tcp_qpair_write_pdu(tqpair, rsp_pdu, nvmf_tcp_send_c2h_term_req_complete, tqpair);
 }
@@ -1650,7 +1650,7 @@ nvmf_tcp_h2c_term_req_payload_handle(struct spdk_nvmf_tcp_qpair *tqpair,
 	struct spdk_nvme_tcp_term_req_hdr *h2c_term_req = &pdu->hdr.term_req;
 
 	nvmf_tcp_h2c_term_req_dump(h2c_term_req);
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+	ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 	nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 }
 
@@ -1704,7 +1704,7 @@ nvmf_tcp_send_icresp_complete(void *cb_arg)
 {
 	struct spdk_nvmf_tcp_qpair *tqpair = cb_arg;
 
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair->state = NVME_TCP_QPAIR_STATE_RUNNING;
 }
 
@@ -1713,7 +1713,7 @@ nvmf_tcp_icreq_handle(struct spdk_nvmf_tcp_transport *ttransport,
 		      struct spdk_nvmf_tcp_qpair *tqpair,
 		      struct nvme_tcp_pdu *pdu)
 {
-        ericf("\n");
+	ericf("\n");
 	struct spdk_nvme_tcp_ic_req *ic_req = &pdu->hdr.ic_req;
 	struct nvme_tcp_pdu *rsp_pdu;
 	struct spdk_nvme_tcp_ic_resp *ic_resp;
@@ -1745,8 +1745,8 @@ nvmf_tcp_icreq_handle(struct spdk_nvmf_tcp_transport *ttransport,
 	/* Now that we know whether digests are enabled, properly size the receive buffer */
 	if (spdk_sock_set_recvbuf(tqpair->sock, tqpair->recv_buf_size) < 0) {
 		SPDK_ERRLOG("Unable to allocate enough memory for receive buffer on tqpair=%p with size=%d\n",
-			     tqpair,
-			     tqpair->recv_buf_size);
+			    tqpair,
+			    tqpair->recv_buf_size);
 		/* Not fatal. */
 	}
 
@@ -1962,7 +1962,7 @@ nvmf_tcp_sock_process(struct spdk_nvmf_tcp_qpair *tqpair)
 				return rc;
 			}
 
-                        ericf("rc = nvme_tcp_read_data(tqpair->sock\n");
+			ericf("rc = nvme_tcp_read_data(tqpair->sock\n");
 			rc = nvme_tcp_read_data(tqpair->sock,
 						sizeof(struct spdk_nvme_tcp_common_pdu_hdr) - pdu->ch_valid_bytes,
 						(void *)&pdu->hdr.common + pdu->ch_valid_bytes);
@@ -2187,7 +2187,7 @@ nvmf_tcp_req_parse_sgl(struct spdk_nvmf_tcp_req *tcp_req,
 
 		req->iov[0].iov_base = req->data;
 		req->iov[0].iov_len = length;
-                ericf("req->iovcnt = 1;\n");
+		ericf("req->iovcnt = 1;\n");
 		req->iovcnt = 1;
 
 		return 0;
@@ -2497,7 +2497,7 @@ nvmf_tcp_req_process(struct spdk_nvmf_tcp_transport *ttransport,
 			if (rc < 0) {
 				STAILQ_REMOVE_HEAD(&group->pending_buf_queue, buf_link);
 				/* Reset the tqpair receving pdu state */
-ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
+				ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 				nvmf_tcp_qpair_set_recv_state(tqpair, NVME_TCP_PDU_RECV_STATE_ERROR);
 				nvmf_tcp_req_set_state(tcp_req, TCP_REQUEST_STATE_READY_TO_COMPLETE);
 				break;
@@ -2619,7 +2619,7 @@ ericf("Set NVME_TCP_PDU_RECV_STATE_ERROR\n");
 static void
 nvmf_tcp_sock_cb(void *arg, struct spdk_sock_group *group, struct spdk_sock *sock)
 {
-        ericf("nvmf_tcp_sock_cb\n");
+	ericf("nvmf_tcp_sock_cb\n");
 	struct spdk_nvmf_tcp_qpair *tqpair = arg;
 	int rc;
 

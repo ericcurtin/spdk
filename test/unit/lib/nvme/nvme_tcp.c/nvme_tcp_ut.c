@@ -962,13 +962,13 @@ test_nvme_tcp_pdu_ch_handle(void)
 
 	/* case 4: Unexpected PDU type. Expect: fail */
 	tqpair.recv_pdu.hdr.common.pdu_type = SPDK_NVME_TCP_PDU_TYPE_IC_REQ;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
 	tqpair.recv_pdu.hdr.common.plen = 0;
 	tqpair.recv_pdu.hdr.common.hlen = sizeof(struct spdk_nvme_tcp_ic_resp);
 	nvme_tcp_pdu_ch_handle(&tqpair);
 	CU_ASSERT(tqpair.recv_state == NVME_TCP_PDU_RECV_STATE_ERROR);
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.common.pdu_type == SPDK_NVME_TCP_PDU_TYPE_H2C_TERM_REQ);
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.common.hlen == sizeof(struct spdk_nvme_tcp_term_req_hdr));
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.common.plen == tqpair.send_pdu->hdr.term_req.common.hlen +
@@ -988,12 +988,12 @@ ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.fei[0] == 4);
 
 	tqpair.recv_pdu.hdr.common.pdu_type = SPDK_NVME_TCP_PDU_TYPE_CAPSULE_RESP;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
 	tqpair.recv_pdu.hdr.common.flags = SPDK_NVME_TCP_CH_FLAGS_HDGSTF;
 	tqpair.recv_pdu.hdr.common.plen = 0;
 	tqpair.recv_pdu.hdr.common.hlen = sizeof(struct spdk_nvme_tcp_rsp);
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	nvme_tcp_pdu_ch_handle(&tqpair);
 	CU_ASSERT(tqpair.recv_state == NVME_TCP_PDU_RECV_STATE_ERROR);
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.common.pdu_type == SPDK_NVME_TCP_PDU_TYPE_H2C_TERM_REQ);
@@ -1003,11 +1003,11 @@ ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.fei[0] == 4);
 
 	tqpair.recv_pdu.hdr.common.pdu_type = SPDK_NVME_TCP_PDU_TYPE_C2H_DATA;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
 	tqpair.recv_pdu.hdr.common.plen = 0;
 	tqpair.recv_pdu.hdr.common.pdo = 64;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.recv_pdu.hdr.common.hlen = sizeof(struct spdk_nvme_tcp_c2h_data_hdr);
 	nvme_tcp_pdu_ch_handle(&tqpair);
 	CU_ASSERT(tqpair.recv_state == NVME_TCP_PDU_RECV_STATE_ERROR);
@@ -1018,10 +1018,10 @@ ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.fei[0] == 4);
 
 	tqpair.recv_pdu.hdr.common.pdu_type = SPDK_NVME_TCP_PDU_TYPE_C2H_TERM_REQ;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
 	tqpair.recv_pdu.hdr.common.plen = 0;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.recv_pdu.hdr.common.hlen = sizeof(struct spdk_nvme_tcp_term_req_hdr);
 	nvme_tcp_pdu_ch_handle(&tqpair);
 	CU_ASSERT(tqpair.recv_state == NVME_TCP_PDU_RECV_STATE_ERROR);
@@ -1032,9 +1032,9 @@ ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	CU_ASSERT(tqpair.send_pdu->hdr.term_req.fei[0] == 4);
 
 	tqpair.recv_pdu.hdr.common.pdu_type = SPDK_NVME_TCP_PDU_TYPE_R2T;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.recv_pdu.hdr.common.flags = SPDK_NVME_TCP_CH_FLAGS_HDGSTF;
 	tqpair.recv_pdu.hdr.common.plen = 0;
 	tqpair.recv_pdu.hdr.common.hlen = sizeof(struct spdk_nvme_tcp_r2t_hdr);
@@ -1127,8 +1127,8 @@ test_nvme_tcp_qpair_icreq_send(void)
 	tqpair.qpair.poll_group = &poll_group.group;
 	ic_req = &pdu.hdr.ic_req;
 
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
-ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
+	ericf("Set NVME_TCP_QPAIR_STATE_RUNNING\n");
 	tqpair.state = NVME_TCP_QPAIR_STATE_RUNNING;
 	tqpair.qpair.ctrlr->opts.header_digest = true;
 	tqpair.qpair.ctrlr->opts.data_digest = true;

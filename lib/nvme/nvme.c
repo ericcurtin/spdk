@@ -282,7 +282,7 @@ nvme_wait_for_completion_robust_lock_timeout(
 	pthread_mutex_t *robust_mutex,
 	uint64_t timeout_in_usecs)
 {
-        SPDK_ERRLOG("timeout_in_usecs: %lu\n", timeout_in_usecs);
+	SPDK_ERRLOG("timeout_in_usecs: %lu\n", timeout_in_usecs);
 	uint64_t timeout_tsc = 0;
 	int rc = 0;
 
@@ -308,7 +308,7 @@ nvme_wait_for_completion_robust_lock_timeout(
 
 		if (rc < 0) {
 			status->cpl.status.sct = SPDK_NVME_SCT_GENERIC;
-                        SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
+			SPDK_ERRLOG("Set SPDK_NVME_SC_ABORTED_SQ_DELETION\n");
 			status->cpl.status.sc = SPDK_NVME_SC_ABORTED_SQ_DELETION;
 			break;
 		}
@@ -331,7 +331,7 @@ nvme_wait_for_completion_robust_lock_timeout(
 	}
 
 	if (rc < 0) {
-                ericf("rc: %d return -ECANCELED;\n", rc);
+		ericf("rc: %d return -ECANCELED;\n", rc);
 		return -ECANCELED;
 	}
 

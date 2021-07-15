@@ -433,7 +433,7 @@ spdk_sock_writev_async(struct spdk_sock *sock, struct spdk_sock_request *req)
 int
 spdk_sock_flush(struct spdk_sock *sock)
 {
-        ericf("spdk_sock_flush\n");
+	ericf("spdk_sock_flush\n");
 	if (sock == NULL || sock->flags.closed) {
 		return -EBADF;
 	}
@@ -622,7 +622,7 @@ sock_group_impl_poll_count(struct spdk_sock_group_impl *group_impl,
 	for (i = 0; i < num_events; i++) {
 		struct spdk_sock *sock = socks[i];
 		assert(sock->cb_fn != NULL);
-                ericf("nvmf_tcp_sock_cb\n");
+		ericf("nvmf_tcp_sock_cb\n");
 		sock->cb_fn(sock->cb_arg, group, sock);
 	}
 
